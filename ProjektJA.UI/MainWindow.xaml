@@ -8,14 +8,14 @@
         Title="MainWindow" Height="450" Width="800">
     <Grid>
 		<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Width="300">
-			<TextBlock Text="x = 1, y = 2" FontSize="16" Margin="10"/>
+			<TextBlock Text="x = 1, y = 2" FontSize="16" Margin="10" HorizontalAlignment="Center"/>
 			
 			<StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
 				<Button x:Name="RunCppButton" Content="C++" FontSize="16" Margin="5" Click="RunCppButton_Click"/> 
 				<Button x:Name="RunAsmButton" Content="ASM" FontSize="16" Margin="5" Click="RunAsmButton_Click"/> 
 			</StackPanel>
 
-			<TextBlock x:Name="ResultBlock" Margin="10" FontSize="16"/>
+			<TextBlock x:Name="ResultBlock" Margin="10" FontSize="16" HorizontalAlignment="Center"/>
 		</StackPanel>
 	</Grid>
 </Window>
