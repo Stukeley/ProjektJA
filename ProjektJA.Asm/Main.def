@@ -1,4 +1,5 @@
 ;-------------------------------------------------------------------------
 LIBRARY Main
-EXPORTS MyProc1
+EXPORTS DllEntry
+EXPORTS ApplyFilterToImageFragmentAsm
 ;-------------------------------------------------------------------------

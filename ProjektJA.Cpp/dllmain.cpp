@@ -17,40 +17,17 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     return TRUE;
 }
 
-typedef int(__stdcall* f_MyProc1)(DWORD, DWORD);
-
-extern "C" __declspec(dllexport) int RunAsm()
+extern "C" __declspec(dllexport) byte* __stdcall ApplyFilterToImageFragmentCpp(byte* bitmapBytes, int bitmapBytesLength, int startIndex, int endIndex)
 {
-	HINSTANCE hGetProcIDDLL = LoadLibrary(L"C:\\Programowanie\\ProjektJA\\x64\\Debug\\ProjektJA.Asm.dll");
+    int sumOfHundredBytes = 0;
 
-	if (hGetProcIDDLL == NULL)
-	{
-		// Nie mozna bylo zaladowac DLL.
-		return 0;
-	}
+    for (int i = 0; i < 100; i++)
+    {
+        sumOfHundredBytes += bitmapBytes[i];
+    }
 
-	f_MyProc1 MyProc1 = (f_MyProc1)GetProcAddress(hGetProcIDDLL, "MyProc1");
+    // return random result
+    byte* result = new byte[1];
 
-	if (!MyProc1)
-	{
-		// Nie znaleziono procedury w DLL.
-		return 0;
-	}
-
-	int x = 1, y = 2;
-
-	int z = MyProc1(x, y);
-
-	FreeLibrary(hGetProcIDDLL);
-
-	return z;
-}
-
-extern "C" __declspec(dllexport) int RunCpp()
-{
-	int x = 1, y = 2;
-
-	int z = Add(x, y);
-
-	return z;
+    return result;
 }

@@ -14,22 +14,12 @@ DllEntry ENDP
 ; where to put your own functions in the DLL
 ;-------------------------------------------------------------------------
 
-MyProc1 proc x: DWORD, y: DWORD
+ApplyFilterToImageFragmentAsm proc bitmapBytes: DWORD, bitmapBytesLength: DWORD, startIndex: DWORD, endIndex: DWORD
 
-xor	eax,eax
-mov	eax,x
-mov	ecx,y
-ror	ecx,1
-shld	eax,ecx,2
-jnc 	ET1
-mul	y
-ret
-ET1:	
-Mul	x
-Neg	y
+mov	EAX, 1
 ret
 
-MyProc1 endp
+ApplyFilterToImageFragmentAsm endp
 
 END
 ;-------------------------------------------------------------------------
