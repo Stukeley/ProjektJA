@@ -8,10 +8,10 @@ namespace ProjektJA.UI
 	public class Algorithms
 	{
 		[DllImport(@"C:\Programowanie\ProjektJA\x64\Debug\ProjektJA.Asm.dll")]
-		public static extern IntPtr ApplyFilterToImageFragmentAsm(IntPtr bitmapBytes, int bitmapBytesLength, int startIndex, int endIndex);
+		public static extern int ApplyFilterToImageFragmentAsm(IntPtr bitmapBytes, int bitmapBytesLength, int startIndex, int endIndex);
 
 		[DllImport(@"C:\Programowanie\ProjektJA\x64\Debug\ProjektJA.Cpp.dll", CallingConvention = CallingConvention.StdCall)]
-		public static extern IntPtr ApplyFilterToImageFragmentCpp(IntPtr bitmapBytes, int bitmapBytesLength, int startIndex, int endIndex);
+		public static extern int ApplyFilterToImageFragmentCpp(IntPtr bitmapBytes, int bitmapBytesLength, int startIndex, int endIndex);
 
 		public static async Task<byte[]> CallAsmAlgorithm(byte[] bitmapBytes, int threadCount)
 		{
@@ -21,11 +21,11 @@ namespace ProjektJA.UI
 			int bytesPerPart = bitmapBytes.Length / threadCount;
 
 			// Control sum
-			int sumOfHundredBytes = 0;
+			int sumOfTenBytes = 0;
 
-			for (int i = 0; i < 100; i++)
+			for (int i = 0; i < 10; i++)
 			{
-				sumOfHundredBytes += bitmapBytes[i];
+				sumOfTenBytes += bitmapBytes[i];
 			}
 
 			for (int i = 0; i < threadCount; i++)
@@ -52,6 +52,8 @@ namespace ProjektJA.UI
 
 			await Task.WhenAll(listOfTasks);
 
+			int sumAsm = ((Task<int>)listOfTasks[0]).Result;
+
 			return new byte[1];
 		}
 
@@ -63,11 +65,11 @@ namespace ProjektJA.UI
 			int bytesPerPart = bitmapBytes.Length / threadCount;
 
 			// Control sum
-			int sumOfHundredBytes = 0;
+			int sumOfTenBytes = 0;
 
-			for (int i = 0; i < 100; i++)
+			for (int i = 0; i < 10; i++)
 			{
-				sumOfHundredBytes += bitmapBytes[i];
+				sumOfTenBytes += bitmapBytes[i];
 			}
 
 			for (int i = 0; i < threadCount; i++)
@@ -93,6 +95,8 @@ namespace ProjektJA.UI
 			}
 
 			await Task.WhenAll(listOfTasks);
+
+			int sumAsm = ((Task<int>)listOfTasks[0]).Result;
 
 			return new byte[1];
 		}

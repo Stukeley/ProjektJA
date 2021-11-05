@@ -17,17 +17,14 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     return TRUE;
 }
 
-extern "C" __declspec(dllexport) byte* __stdcall ApplyFilterToImageFragmentCpp(byte* bitmapBytes, int bitmapBytesLength, int startIndex, int endIndex)
+extern "C" __declspec(dllexport) int __stdcall ApplyFilterToImageFragmentCpp(byte* bitmapBytes, int bitmapBytesLength, int startIndex, int endIndex)
 {
-    int sumOfHundredBytes = 0;
+    int sumOfTenBytes = 0;
 
-    for (int i = 0; i < 100; i++)
+    for (int i = 0; i < 10; i++)
     {
-        sumOfHundredBytes += bitmapBytes[i];
+        sumOfTenBytes += bitmapBytes[i];
     }
 
-    // return random result
-    byte* result = new byte[1];
-
-    return result;
+    return sumOfTenBytes;
 }
