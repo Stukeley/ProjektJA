@@ -1,4 +1,5 @@
 ﻿using Microsoft.Win32;
+using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -17,6 +18,7 @@ namespace ProjektJA.UI
 		private Stopwatch _stopwatch;
 		private int _threadCount;
 		private byte[] _bitmapBytes;
+		private Bitmap _bitmap;
 
 		public MainWindow()
 		{
@@ -74,7 +76,7 @@ namespace ProjektJA.UI
 		{
 			_threadCount = int.Parse(ThreadCountBox.Text);
 
-			var bitmapHeader = _bitmapBytes.Take(54);
+			var bitmapHeader = _bitmapBytes.Take(54).ToArray();
 
 			var bitmapWithoutHeader = new byte[_bitmapBytes.Length - 54];
 
@@ -83,20 +85,40 @@ namespace ProjektJA.UI
 				bitmapWithoutHeader[i - 54] = _bitmapBytes[i];
 			}
 
+			int bitmapWidth = BitConverter.ToInt32(bitmapHeader.Skip(18).Take(4).ToArray(), 0) * 3;
+
 			_stopwatch.Restart();
 
-			if (_asmAlgorithm)
-			{
-				Algorithms.CallAsmAlgorithm(bitmapWithoutHeader, _threadCount);
-			}
-			else
-			{
-				Algorithms.CallCppAlgorithm(bitmapWithoutHeader, _threadCount);
-			}
+			var xd = Algorithms.CallCsAlgorithm(bitmapWithoutHeader, bitmapWidth, _threadCount).Result;
+
+			//if (_asmAlgorithm)
+			//{
+			//	Algorithms.CallAsmAlgorithm(bitmapWithoutHeader, bitmapWidth, _threadCount);
+			//}
+			//else
+			//{
+			//	Algorithms.CallCppAlgorithm(bitmapWithoutHeader, bitmapWidth, _threadCount);
+			//}
 
 			_stopwatch.Stop();
 			string _executionTime = "Execution time: " + _stopwatch.Elapsed.ToString(@"mm\:ss\.fff");
 			ExecutionTimeBlock.Text = _executionTime;
+
+			// Save bitmap to file.
+			var outputBitmapComplete = new byte[_bitmapBytes.Length];
+			int x = 0;
+
+			for (x = 0; x < 54; x++)
+			{
+				outputBitmapComplete[x] = bitmapHeader[x];
+			}
+
+			for (x = 54; x < outputBitmapComplete.Length; x++)
+			{
+				outputBitmapComplete[x] = xd[x - 54];
+			}
+
+			File.WriteAllBytes("TestOutput.bmp", outputBitmapComplete);
 		}
 
 

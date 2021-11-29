@@ -13,92 +13,65 @@ namespace ProjektJA.UI
 		[DllImport(@"C:\Programowanie\ProjektJA\x64\Debug\ProjektJA.Cpp.dll", CallingConvention = CallingConvention.StdCall)]
 		public static extern int ApplyFilterToImageFragmentCpp(IntPtr bitmapBytes, int bitmapBytesLength, int startIndex, int endIndex);
 
-		public static async Task<byte[]> CallAsmAlgorithm(byte[] bitmapBytes, int threadCount)
+		public static async Task<byte[]> CallCsAlgorithm(byte[] bitmapBytes, int bitmapWidth, int threadCount)
 		{
-			var listOfTasks = new List<Task>();
+			var listOfTasks = new List<Task<byte[]>>();
 
 			int index = 0;
 			int bytesPerPart = bitmapBytes.Length / threadCount;
 
-			// Control sum
-			int sumOfTenBytes = 0;
-
-			for (int i = 0; i < 10; i++)
-			{
-				sumOfTenBytes += bitmapBytes[i];
-			}
+			bytesPerPart -= bytesPerPart % 3;
 
 			for (int i = 0; i < threadCount; i++)
 			{
 				int startIndex = index;
-				int endIndex = startIndex + bytesPerPart;
+				int endIndex = startIndex + bytesPerPart - 1;
 
 				if (i == threadCount - 1)
 				{
 					endIndex = bitmapBytes.Length - 1;
 				}
 
-				unsafe
-				{
-					fixed (byte* pointerToByteArray = &(bitmapBytes[0]))
-					{
-						var intPtr = new IntPtr(pointerToByteArray);
+				index = endIndex + 1;
 
-						var task = Task.Run(() => ApplyFilterToImageFragmentAsm(intPtr, bitmapBytes.Length, startIndex, endIndex));
-						listOfTasks.Add(task);
-					}
+				byte[] bitmapCopy = new byte[bitmapBytes.Length];
+
+				for (int j = 0; j < bitmapBytes.Length; j++)
+				{
+					bitmapCopy[j] = bitmapBytes[j];
 				}
+
+				var task = Task.Run(() => HighPassImageFilter.ApplyFilterToImageFragmentCs(bitmapCopy, bitmapBytes.Length, bitmapWidth, startIndex, endIndex));
+				listOfTasks.Add(task);
+
+				//unsafe
+				//{
+				//	fixed (byte* pointerToByteArray = &(bitmapBytes[0]))
+				//	{
+				//		var intPtr = new IntPtr(pointerToByteArray);
+
+				//		var task = Task.Run(() => HighPassImageFilter.ApplyFilterToImageFragmentCs(intPtr, bitmapBytes.Length, bitmapWidth, startIndex, endIndex));
+				//		listOfTasks.Add(task);
+				//	}
+				//}
 			}
 
-			await Task.WhenAll(listOfTasks);
+			await Task.WhenAll(listOfTasks).ConfigureAwait(false);
 
-			int sumAsm = ((Task<int>)listOfTasks[0]).Result;
+			var output = new byte[bitmapBytes.Length];
+			index = 0;
 
-			return new byte[1];
-		}
-
-		public static async Task<byte[]> CallCppAlgorithm(byte[] bitmapBytes, int threadCount)
-		{
-			var listOfTasks = new List<Task>();
-
-			int index = 0;
-			int bytesPerPart = bitmapBytes.Length / threadCount;
-
-			// Control sum
-			int sumOfTenBytes = 0;
-
-			for (int i = 0; i < 10; i++)
+			foreach (var task in listOfTasks)
 			{
-				sumOfTenBytes += bitmapBytes[i];
-			}
+				byte[] outputPart = task.Result;
 
-			for (int i = 0; i < threadCount; i++)
-			{
-				int startIndex = index;
-				int endIndex = startIndex + bytesPerPart;
-
-				if (i == threadCount - 1)
+				for (int i = 0; i < outputPart.Length; i++)
 				{
-					endIndex = bitmapBytes.Length - 1;
-				}
-
-				unsafe
-				{
-					fixed (byte* pointerToByteArray = &(bitmapBytes[0]))
-					{
-						var intPtr = new IntPtr(pointerToByteArray);
-
-						var task = Task.Run(() => ApplyFilterToImageFragmentCpp(intPtr, bitmapBytes.Length, startIndex, endIndex));
-						listOfTasks.Add(task);
-					}
+					output[index++] = outputPart[i];
 				}
 			}
 
-			await Task.WhenAll(listOfTasks);
-
-			int sumAsm = ((Task<int>)listOfTasks[0]).Result;
-
-			return new byte[1];
+			return output;
 		}
 	}
 }
