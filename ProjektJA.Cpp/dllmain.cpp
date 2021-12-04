@@ -1,4 +1,3 @@
-// dllmain.cpp : Defines the entry point for the DLL application.
 #include "pch.h"
 
 BOOL APIENTRY DllMain( HMODULE hModule,
@@ -15,16 +14,4 @@ BOOL APIENTRY DllMain( HMODULE hModule,
         break;
     }
     return TRUE;
-}
-
-extern "C" __declspec(dllexport) int __stdcall ApplyFilterToImageFragmentCpp(byte* bitmapBytes, int bitmapBytesLength, int startIndex, int endIndex)
-{
-    int sumOfTenBytes = 0;
-
-    for (int i = 0; i < 10; i++)
-    {
-        sumOfTenBytes += bitmapBytes[i];
-    }
-
-    return sumOfTenBytes;
 }

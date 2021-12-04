@@ -89,16 +89,20 @@ namespace ProjektJA.UI
 
 			_stopwatch.Restart();
 
-			var xd = Algorithms.CallCsAlgorithm(bitmapWithoutHeader, bitmapWidth, _threadCount).Result;
+			byte[] result = null;
 
-			//if (_asmAlgorithm)
-			//{
-			//	Algorithms.CallAsmAlgorithm(bitmapWithoutHeader, bitmapWidth, _threadCount);
-			//}
-			//else
-			//{
-			//	Algorithms.CallCppAlgorithm(bitmapWithoutHeader, bitmapWidth, _threadCount);
-			//}
+			if (_asmAlgorithm)
+			{
+				// Algorithms.CallAsmAlgorithm(bitmapWithoutHeader, bitmapWidth, _threadCount);
+			}
+			else
+			{
+				result = Algorithms.CallCppAlgorithm(bitmapWithoutHeader, bitmapWidth, _threadCount).Result;
+			}
+
+			byte[] csharpResult = Algorithms.CallCsAlgorithm(bitmapWithoutHeader, bitmapWidth, _threadCount).Result;
+
+			bool equal = result.Equals(csharpResult);
 
 			_stopwatch.Stop();
 			string _executionTime = "Execution time: " + _stopwatch.Elapsed.ToString(@"mm\:ss\.fff");
@@ -115,7 +119,7 @@ namespace ProjektJA.UI
 
 			for (x = 54; x < outputBitmapComplete.Length; x++)
 			{
-				outputBitmapComplete[x] = xd[x - 54];
+				outputBitmapComplete[x] = result[x - 54];
 			}
 
 			File.WriteAllBytes("TestOutput.bmp", outputBitmapComplete);

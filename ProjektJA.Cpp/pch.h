@@ -11,6 +11,5 @@
 #include <Windows.h>
 
 #include "framework.h"
-#include "Algorithm.h"
 
 #endif //PCH_H
