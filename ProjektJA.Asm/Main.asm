@@ -1,5 +1,10 @@
 ;-------------------------------------------------------------------------
 ;INCLUDE C:\masm32\include\windows.inc
+
+.DATA
+SumOfMasks QWORD 1
+Masks QWORD 0, -1, 0, -1, 5, -1, 0, -1, 0
+
 .CODE
 
 DllEntry PROC hInstDLL:DWORD, reason:DWORD, reserved1:DWORD
@@ -15,29 +20,47 @@ DllEntry ENDP
 ; startIndex - indeks pocz¹tkowy do przeprowadzenia algorytmu
 ; endIndex - indeks koñcowy do przeprowadzenia algorytmu
 ;-------------------------------------------------------------------------
+CalculateNewPixelValue proc
+	mov R11, RCX
+	mov rax, 0
+	mov RBX, 0
+Petla1:
+	mov RCX, 0
+	cmp RBX, 3
+	jz Koniec
+	jmp Petla2
+Petla2:
+	mov R10, RCX
+	imul R10, 3
+	add R10, RBX
 
-ApplyFilterToImageFragmentAsm proc
-
-; Jako test przekazywanych danych zsumujemy 10 pierwszych bajtów z tablicy i zwrócimy wynik
-; w RCX zapisze sie wskaznik do danych (pierwszy parametr)
-; w RDX rozmiar tablicy
-; w R8 indeks pocz¹tkowy
-; w R9 indeks koñcowy
-; w razie przekazywania wiêkszej iloœci parametrów znajd¹ siê one na stosie
-mov RAX, 0
-xor RBX, RBX
-Petla:
-	movzx R8, BYTE PTR [RCX + RAX]
-	add RBX, R8
-	inc RAX
-	cmp RAX, 10
-	je Koniec
-	jmp Petla
+	movzx RDX, BYTE PTR [R11 + R10]
+	LEA R12, Masks
+	imul RDX, QWORD PTR [R12 + R10]
+	add RAX, RDX
+	inc RCX
+	cmp RCX, 3
+	jz Petla2
+	inc RBX
+	jmp Petla1
 Koniec:
-	mov RAX, RBX
+	cmp RAX, 0
+	jl Zero
+	cmp RAX, 255
+	ja DwaPiecPiec
 	ret
 
-ApplyFilterToImageFragmentAsm endp
+Zero:
+	mov RAX, 0
+	ret
 
-END
+DwaPiecPiec:
+	mov RAX, 255
+	ret
+
+CalculateNewPixelValue endp
+
+ApplyFilterToImageFragmentAsm proc
+ApplyFilterToImageFragmentAsm endp
 ;-------------------------------------------------------------------------
+END

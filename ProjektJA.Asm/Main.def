@@ -1,5 +1,6 @@
 ;-------------------------------------------------------------------------
 LIBRARY Main
 EXPORTS DllEntry
+EXPORTS CalculateNewPixelValue
 EXPORTS ApplyFilterToImageFragmentAsm
 ;-------------------------------------------------------------------------
