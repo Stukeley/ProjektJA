@@ -6,7 +6,6 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Windows;
-using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
 namespace ProjektJA.UI
@@ -18,7 +17,7 @@ namespace ProjektJA.UI
 		private Stopwatch _stopwatch;
 		private int _threadCount;
 		private byte[] _bitmapBytes;
-		private Bitmap _bitmap;
+		private byte[] _outputBitmapBytes;
 
 		public MainWindow()
 		{
@@ -58,14 +57,16 @@ namespace ProjektJA.UI
 				var bitmapBytes = File.ReadAllBytes(_filePath);
 				_bitmapBytes = bitmapBytes;
 
-				//_bitmap = BitmapConverter.LoadBitmap(fileName);
+				// Display input bitmap on screen.
+				var bitmapImage = ConvertBitmapBytesToImageSource(bitmapBytes);
+				var image = new System.Windows.Controls.Image()
+				{
+					Source = bitmapImage,
+					Width = 200,
+					Height = 200
+				};
+				ContentPanel.Children.Add(image);
 
-				//ContentPanel.Children.Add(new System.Windows.Controls.Image()
-				//{
-				//	Source = ConvertBitmapToImageSource(_bitmap),
-				//	Width = _bitmap.Width,
-				//	Height = _bitmap.Height
-				//});
 				FilterBitmapButton.IsEnabled = true;
 				SaveBitmapButton.IsEnabled = false;
 			}
@@ -102,13 +103,13 @@ namespace ProjektJA.UI
 
 			byte[] csharpResult = Algorithms.CallCsAlgorithm(bitmapWithoutHeader, bitmapWidth, _threadCount).Result;
 
-			bool equal = result.Equals(csharpResult);
+			CompareTwoArrays(result, csharpResult);
 
 			_stopwatch.Stop();
 			string _executionTime = "Execution time: " + _stopwatch.Elapsed.ToString(@"mm\:ss\.fff");
 			ExecutionTimeBlock.Text = _executionTime;
 
-			// Save bitmap to file.
+			// Reconstruct bitmap header.
 			var outputBitmapComplete = new byte[_bitmapBytes.Length];
 			int x = 0;
 
@@ -122,34 +123,99 @@ namespace ProjektJA.UI
 				outputBitmapComplete[x] = result[x - 54];
 			}
 
+			// Display output bitmap on screen.
+			var bitmapImage = ConvertBitmapBytesToImageSource(outputBitmapComplete);
+			var image = new System.Windows.Controls.Image()
+			{
+				Source = bitmapImage,
+				Width = 200,
+				Height = 200,
+				Margin = new Thickness(10, 0, 0, 0)
+			};
+			ContentPanel.Children.Add(image);
+
+			_outputBitmapBytes = outputBitmapComplete;
+
 			File.WriteAllBytes("TestOutput.bmp", outputBitmapComplete);
 		}
 
-
-		private static ImageSource ConvertBitmapToImageSource(Bitmap bitmap)
+		private static void CompareTwoArrays(byte[] first, byte[] second)
 		{
-			if (bitmap is null)
+			// second jest dobra (wzięta z C#)
+
+			bool[] compared = new bool[first.Length];
+
+			for (int i = 0; i < first.Length; i++)
+			{
+				if (first[i] == second[i])
+				{
+					compared[i] = true;
+				}
+				else
+				{
+					compared[i] = false;
+				}
+			}
+
+			int trueCount = compared.Count(x => x == true);
+			int falseCount = compared.Count(x => x == false);
+
+			// Export to file
+
+			using (var writer = new StreamWriter("TempOutput_Zla.txt"))
+			{
+				for (int i = 0; i < first.Length; i++)
+				{
+					writer.WriteLine(first[i]);
+				}
+			}
+
+			using (var writer = new StreamWriter("TempOutput_Dobra.txt"))
+			{
+				for (int i = 0; i < second.Length; i++)
+				{
+					writer.WriteLine(second[i]);
+				}
+			}
+		}
+
+		private static BitmapImage ConvertBitmapBytesToImageSource(byte[] bitmapBytes)
+		{
+			if (bitmapBytes is null)
 			{
 				return null;
 			}
 
-			using (var memoryStream = new MemoryStream())
-			{
-				bitmap.Save(memoryStream, ImageFormat.Bmp);
-				memoryStream.Position = 0;
-				var bitmapimage = new BitmapImage();
-				bitmapimage.BeginInit();
-				bitmapimage.StreamSource = memoryStream;
-				bitmapimage.CacheOption = BitmapCacheOption.OnLoad;
-				bitmapimage.EndInit();
+			var copy = new byte[bitmapBytes.Length];
 
-				return bitmapimage;
+			for (int i = 0; i < bitmapBytes.Length; i++)
+			{
+				copy[i] = bitmapBytes[i];
 			}
+
+			Bitmap bmp;
+
+			var bmpMs = new MemoryStream(copy);
+			bmp = new Bitmap(bmpMs);
+
+			BitmapImage img;
+
+			var ms = new MemoryStream();
+			bmp.Save(ms, ImageFormat.Bmp);
+			ms.Position = 0;
+
+			img = new BitmapImage();
+			img.BeginInit();
+			img.CacheOption = BitmapCacheOption.OnLoad;
+			img.StreamSource = ms;
+			img.EndInit();
+
+			return img;
 		}
 
 		private void SaveBitmapButton_Click(object sender, RoutedEventArgs e)
 		{
-			// todo
+			File.WriteAllBytes("Output.bmp", _outputBitmapBytes);
 		}
 
 		private void AsmAlgorithmBox_Unchecked(object sender, RoutedEventArgs e)
