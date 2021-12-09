@@ -8,7 +8,7 @@ namespace ProjektJA.UI
 	public class Algorithms
 	{
 		[DllImport(@"C:\Programowanie\ProjektJA\x64\Debug\ProjektJA.Asm.dll")]
-		public static extern IntPtr ApplyFilterToImageFragmentAsm(IntPtr bitmapBytes, int bitmapBytesLength, int bitmapWidth, int startIndex, int endIndex);
+		public static extern IntPtr ApplyFilterToImageFragmentAsm(IntPtr bitmapBytes, int bitmapBytesLength, int bitmapWidth, int startIndex, int endIndex, IntPtr filteredFragment);
 
 		[DllImport(@"C:\Programowanie\ProjektJA\x64\Debug\ProjektJA.Cpp.dll", CallingConvention = CallingConvention.StdCall)]
 		public static extern IntPtr ApplyFilterToImageFragmentCpp(IntPtr bitmapBytes, int bitmapBytesLength, int bitmapWidth, int startIndex, int endIndex);
@@ -176,13 +176,22 @@ namespace ProjektJA.UI
 					bitmapCopy[j] = bitmapBytes[j];
 				}
 
+				byte[] filteredFragment = new byte[endIndex - startIndex + 1];
+
+				for (int x = 0; x < endIndex - startIndex + 1; x++)
+				{
+					filteredFragment[x] = bitmapBytes[startIndex + x];
+				}
+
 				unsafe
 				{
 					fixed (byte* pointerToByteArray = &(bitmapBytes[0]))
+					fixed (byte* pointerToFilteredFragmentArray = &(filteredFragment[0]))
 					{
-						var intPtr = new IntPtr(pointerToByteArray);
+						var bitmapBytesIntPtr = new IntPtr(pointerToByteArray);
+						var filteredFragmentIntPtr = new IntPtr(pointerToFilteredFragmentArray);
 
-						var task = Task.Run(() => ApplyFilterToImageFragmentAsm(intPtr, bitmapBytes.Length, bitmapWidth, startIndex, endIndex));
+						var task = Task.Run(() => ApplyFilterToImageFragmentAsm(bitmapBytesIntPtr, bitmapBytes.Length, bitmapWidth, startIndex, endIndex, filteredFragmentIntPtr));
 						listOfTasks.Add(task);
 					}
 				}

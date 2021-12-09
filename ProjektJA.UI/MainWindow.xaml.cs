@@ -93,7 +93,6 @@ namespace ProjektJA.UI
 
 			if (_asmAlgorithm)
 			{
-				Algorithms.TestAsmAlgorithm(bitmapWithoutHeader, bitmapWidth);
 				result = Algorithms.CallAsmAlgorithm(bitmapWithoutHeader, bitmapWidth, _threadCount).Result;
 			}
 			else
