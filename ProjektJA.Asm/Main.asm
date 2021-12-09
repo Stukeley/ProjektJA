@@ -29,6 +29,12 @@ DllEntry ENDP
 ; wartoœæ zwracana znajduje siê w rejestrze RAX po wywo³aniu funkcji.
 ;-------------------------------------------------------------------------
 CalculateNewPixelValue proc
+	; Przygotowujemy stos
+	push R10
+	push R11
+	push R12
+	push R13
+	
 	mov R11, RCX	; Problem - korzystamy z R11 i R12 i R13 i R10 który jest zajêty - stos?
 	mov RAX, 0
 	mov RBX, 0
@@ -56,6 +62,12 @@ Petla2:				; for (int x = 0; x < 3; x++)
 	jmp Petla1
 
 Koniec:
+	; Stos
+	pop R13
+	pop R12
+	pop R11
+	pop R10
+
 	cmp RAX, 0
 	jl Zero
 	cmp RAX, 255
@@ -89,12 +101,11 @@ ApplyFilterToImageFragmentAsm proc
 	mov BitmapWidth, R8
 	mov StartIndex, R9
 
-	pop RDX
+	mov R11, QWORD PTR [RSP + 40]	; R11 - koñcowy indeks
 
-	pop R11
+	mov RDX, QWORD PTR [RSP + 48]	; RDX - wskaŸnik na bitmapê wyjœciow¹
+
 	mov EndIndex, R11
-	;debug only
-	mov EndIndex, 68855
 
 	inc R11			; R11 = endIndex - startIndex + 1
 	sub R11, R9
@@ -203,7 +214,7 @@ KoniecPetliXY:
 	mov RDX, R11	; i - startIndex
 	sub RDX, StartIndex
 
-	mov [R9 + RDX], RAX
+	mov BYTE PTR [R9 + RDX], AL
 
 	lea RCX, ValuesG
 	call CalculateNewPixelValue
@@ -214,7 +225,8 @@ KoniecPetliXY:
 	sub RDX, StartIndex
 	inc RDX
 
-	mov [R9 + RDX], RAX
+	mov BYTE PTR [R9 + RDX], AL	;! tu excepcja dla wartoœci: RDX = 6277, RAX = 42, R11 = 6276, StartIndex = 0 - byæ mo¿e trzeba dawaæ BYTE PTR i AL zamiast RAX? -> nie, dalej Ÿle
+	; teraz crash dla innych wartoœci: RDX = 3964, RAX = 183, R11 = 3963, StartIndex = 0
 
 	lea RCX, ValuesB
 	call CalculateNewPixelValue
@@ -225,7 +237,7 @@ KoniecPetliXY:
 	sub RDX, StartIndex
 	add RDX, 2
 
-	mov [R9 + RDX], RAX
+	mov BYTE PTR [R9 + RDX], AL
 
 	jmp KoniecGlownejPetli
 
