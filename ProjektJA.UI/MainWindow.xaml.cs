@@ -1,8 +1,6 @@
 ﻿using Microsoft.Win32;
 using System;
 using System.Diagnostics;
-using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -193,24 +191,14 @@ namespace ProjektJA.UI
 				copy[i] = bitmapBytes[i];
 			}
 
-			Bitmap bmp;
+			var bmp = new BitmapImage();
+			var ms = new MemoryStream(bitmapBytes);
+			bmp.BeginInit();
+			bmp.StreamSource = ms;
+			bmp.CacheOption = BitmapCacheOption.OnLoad;
+			bmp.EndInit();
 
-			var bmpMs = new MemoryStream(copy);
-			bmp = new Bitmap(bmpMs);
-
-			BitmapImage img;
-
-			var ms = new MemoryStream();
-			bmp.Save(ms, ImageFormat.Bmp);
-			ms.Position = 0;
-
-			img = new BitmapImage();
-			img.BeginInit();
-			img.CacheOption = BitmapCacheOption.OnLoad;
-			img.StreamSource = ms;
-			img.EndInit();
-
-			return img;
+			return bmp;
 		}
 
 		private void SaveBitmapButton_Click(object sender, RoutedEventArgs e)
