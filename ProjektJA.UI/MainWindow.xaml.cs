@@ -10,6 +10,8 @@ namespace ProjektJA.UI
 {
 	public partial class MainWindow : Window
 	{
+		private const int MaximumThreadCount = 16;
+
 		private bool _asmAlgorithm;
 		private string _filePath;
 		private Stopwatch _stopwatch;
@@ -45,7 +47,6 @@ namespace ProjektJA.UI
 				}
 
 				ContentPanel.Children.Clear();
-				SaveBitmapButton.IsEnabled = false;
 				ExecutionTimeBlock.Text = "";
 
 				FilePathBox.Text = fileName;
@@ -74,6 +75,19 @@ namespace ProjektJA.UI
 		private void FilterBitmapButton_Click(object sender, RoutedEventArgs e)
 		{
 			_threadCount = int.Parse(ThreadCountBox.Text);
+
+			if (_threadCount > MaximumThreadCount)
+			{
+				MessageBox.Show($"The maximum amount of threads is {MaximumThreadCount}.", "Too many threads", MessageBoxButton.OK, MessageBoxImage.Warning);
+				_threadCount = MaximumThreadCount;
+				ThreadCountBox.Text = $"{MaximumThreadCount}";
+			}
+			else if (_threadCount <= 0)
+			{
+				MessageBox.Show($"The minimum amount of threads is 1.", "Threads set to 0 or less", MessageBoxButton.OK, MessageBoxImage.Warning);
+				_threadCount = 1;
+				ThreadCountBox.Text = "1";
+			}
 
 			var bitmapHeader = _bitmapBytes.Take(54).ToArray();
 
@@ -134,7 +148,13 @@ namespace ProjektJA.UI
 
 			_outputBitmapBytes = outputBitmapComplete;
 
+			// Allow the output image to be saved.
+			SaveBitmapButton.IsEnabled = true;
+
+			// Debug only - save the image separately.
+#if DEBUG
 			File.WriteAllBytes("TestOutput.bmp", outputBitmapComplete);
+#endif
 		}
 
 		private static void CompareTwoArrays(byte[] first, byte[] second)

@@ -2,17 +2,17 @@
 ;INCLUDE C:\masm32\include\windows.inc
 
 .DATA
-SumOfMasks QWORD 1
-Masks QWORD 0, -1, 0, -1, 5, -1, 0, -1, 0
+SumOfMasks QWORD 1							; suma masek z poni¿szej tablicy (zawsze sta³a, dla filtra HP1 równa 1)
+Masks QWORD 0, -1, 0, -1, 5, -1, 0, -1, 0	; tablica masek 3x3
 
 ValuesR BYTE 9 dup (0)	; tablica przechowuj¹ca wartoœci R pikseli z obszaru 3x3
 ValuesG BYTE 9 dup (0)	; tablica przechowuj¹ca wartoœci G pikseli z obszaru 3x3
 ValuesB BYTE 9 dup (0)	; tablica przechowuj¹ca wartoœci B pikseli z obszaru 3x3
 
-BitmapLength QWORD 0
-BitmapWidth QWORD 0
-StartIndex QWORD 0
-EndIndex QWORD 0
+BitmapLength QWORD 0	; zmienna przechowuj¹ca rozmiar bitmapy (zapisywana w pamiêci po rozpoczêciu algorytmu)
+BitmapWidth QWORD 0		; zmienna przechowuj¹ca szerokoœæ (zapisywana w pamiêci po rozpoczêciu algorytmu)
+StartIndex QWORD 0		; zmienna przechowuj¹ca pocz¹tkowy indeks, dla którego mamy przeprowadziæ algorytm (zapisywana w pamiêci po rozpoczêciu algorytmu)
+EndIndex QWORD 0		; zmienna przechowuj¹ca koñcowy indeks, dla którego mamy przeprowadziæ algorytm (zapisywana w pamiêci po rozpoczêciu algorytmu)
 
 .CODE
 
@@ -29,16 +29,16 @@ DllEntry ENDP
 ; wartoœæ zwracana znajduje siê w rejestrze RAX po wywo³aniu funkcji.
 ;-------------------------------------------------------------------------
 CalculateNewPixelValue proc
-	; Przygotowujemy stos
+	; Zapisujemy wartoœci rejestrów R10, R11, R12 i R13 na stosie
 	push R10
 	push R11
 	push R12
 	push R13
 	
-	mov R11, RCX	; Problem - korzystamy z R11 i R12 i R13 i R10 który jest zajêty - stos?
+	mov R11, RCX	; przechowujemy adres parametru w R11
 	mov RAX, 0
 	mov RBX, 0
-	LEA R12, Masks	; Adres tablicy (ustawiamy tylko raz)
+	lea R12, Masks	; Adres tablicy (ustawiamy tylko raz)
 
 Petla1:				; for (int y = 0; y < 3; y++)
 	mov RCX, 0
@@ -62,7 +62,7 @@ Petla2:				; for (int x = 0; x < 3; x++)
 	jmp Petla1
 
 Koniec:
-	; Stos
+	; Przywracamy wartoœci rejestrów R10, R11, R12 i R13 ze stosu
 	pop R13
 	pop R12
 	pop R11
@@ -96,37 +96,31 @@ ApplyFilterToImageFragmentAsm proc
 
 	xor R10, R10
 
-					; Przeniesiemy poszczególne parametry do zmiennych w kodzie
+	; Przeniesiemy poszczególne parametry do zmiennych w pamiêci
 	mov BitmapLength, RDX
 	mov BitmapWidth, R8
 	mov StartIndex, R9
 
-	mov R11, QWORD PTR [RSP + 40]	; R11 - koñcowy indeks
+	mov R11, QWORD PTR [RSP + 40]	; R11 - koñcowy indeks (tymczasowo)
 
-	mov RDX, QWORD PTR [RSP + 48]	; RDX - wskaŸnik na bitmapê wyjœciow¹
+	mov RDX, QWORD PTR [RSP + 48]	; RDX - wskaŸnik na bitmapê wyjœciow¹ (tymczasowo)
 
 	mov EndIndex, R11
 
-	inc R11			; R11 = endIndex - startIndex + 1
+	inc R11			; R11 = endIndex - startIndex + 1 - ! to jest chyba niepotrzebne ju¿
 	sub R11, R9
 
 	mov R8, RCX		; R8 = wskaŸnik na bitmapê wejœciow¹
 	mov R9, RDX		; R9 = wskaŸnik na bitmapê wyjœciow¹
 
-Inicjalizacja:		; To mo¿e ju¿ byæ niepotrzebne
-
-	; filteredFragment[i] = bitmapBytes[startIndex + i]
-	inc R10
-	cmp R10, R11
-	jge SetupGlownejPetli
-	jmp Inicjalizacja
+	jmp SetupGlownejPetli
 
 SetupGlownejPetli:
 	mov R11, StartIndex	; i = R11
 
 GlownaPetla:		; for (int i = startIndex; i <= endIndex; i += 3)
 
-	mov R12, R11	; centerPixelIndex = i; (R12)
+	mov R12, R11	; centerPixelIndex = i; (R12) !<- to ewentualnie mo¿na wyeliminowaæ, bo i == centerPixelIndex
 
 	mov R13, BitmapWidth ; R13 = bitmapWidth
 
@@ -181,20 +175,22 @@ GlownaPetlaX:		; for (int x = 0; x < 3; x++) (R14 = x)
 	imul RCX, 3
 	add RCX, R14
 
-	mov BL, BYTE PTR [R8 + RBX]
+	mov R15B, BYTE PTR [R8 + RBX]	; R15B = bitmapBytes[index]
 	lea RAX, ValuesR
 
-	mov BYTE PTR [RAX + RCX], BL
+	mov BYTE PTR [RAX + RCX], R15B ; valuesR[x + y * 3] = BL
 
-	inc RDX
+	inc RBX						; R15B = bitmapBytes[index + 1]
+	mov R15B, BYTE PTR [R8 + RBX]
 	lea RAX, ValuesG
 
-	mov BYTE PTR [RAX + RCX], BL
+	mov BYTE PTR [RAX + RCX], R15B ; valuesG[x + y * 3] = BL
 
-	inc RDX
+	inc RBX						; R15B = bitmapBytes[index + 2]
+	mov R15B, BYTE PTR [R8 + RBX]
 	lea RAX, ValuesB
 
-	mov BYTE PTR [RAX + RCX], BL
+	mov BYTE PTR [RAX + RCX], R15B ; valuesB[x + y * 3] = BL
 
 	inc R14
 	cmp R14, 3
@@ -203,10 +199,8 @@ GlownaPetlaX:		; for (int x = 0; x < 3; x++) (R14 = x)
 	jmp GlownaPetlaY
 
 KoniecPetliXY:
-	;mov R15, R11
-	;sub R15, StartIndex ;!?
 
-	lea RCX, ValuesR
+	lea RCX, ValuesR	; adres ValuesR do RCX - przekazywany do procedury CalculateNewPixelValue
 	call CalculateNewPixelValue
 
 	; filteredFragment[i - startIndex] = CalculateNewPixelValue(valuesR);
@@ -214,9 +208,9 @@ KoniecPetliXY:
 	mov RDX, R11	; i - startIndex
 	sub RDX, StartIndex
 
-	mov BYTE PTR [R9 + RDX], AL
+	mov BYTE PTR [R9 + RDX], AL	; wykorzystujemy AL, czyli dolne 8 bitów rejestru RAX (w którym jest wartoœæ zwracana z CalculateNewPixelValue)
 
-	lea RCX, ValuesG
+	lea RCX, ValuesG	; adres ValuesG do RCX - przekazywany do procedury CalculateNewPixelValue
 	call CalculateNewPixelValue
 
 	; filteredFragment[i - startIndex + 1] = CalculateNewPixelValue(valuesG);
@@ -225,10 +219,9 @@ KoniecPetliXY:
 	sub RDX, StartIndex
 	inc RDX
 
-	mov BYTE PTR [R9 + RDX], AL	;! tu excepcja dla wartoœci: RDX = 6277, RAX = 42, R11 = 6276, StartIndex = 0 - byæ mo¿e trzeba dawaæ BYTE PTR i AL zamiast RAX? -> nie, dalej Ÿle
-	; teraz crash dla innych wartoœci: RDX = 3964, RAX = 183, R11 = 3963, StartIndex = 0
+	mov BYTE PTR [R9 + RDX], AL	; wykorzystujemy AL, czyli dolne 8 bitów rejestru RAX (w którym jest wartoœæ zwracana z CalculateNewPixelValue)
 
-	lea RCX, ValuesB
+	lea RCX, ValuesB	; adres ValuesB do RCX - przekazywany do procedury CalculateNewPixelValue
 	call CalculateNewPixelValue
 
 	; filteredFragment[i - startIndex + 2] = CalculateNewPixelValue(valuesB);
@@ -237,7 +230,7 @@ KoniecPetliXY:
 	sub RDX, StartIndex
 	add RDX, 2
 
-	mov BYTE PTR [R9 + RDX], AL
+	mov BYTE PTR [R9 + RDX], AL ; wykorzystujemy AL, czyli dolne 8 bitów rejestru RAX (w którym jest wartoœæ zwracana z CalculateNewPixelValue)
 
 	jmp KoniecGlownejPetli
 
