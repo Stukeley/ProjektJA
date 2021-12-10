@@ -178,13 +178,15 @@ namespace ProjektJA.UI
 
 						var task = Task.Run(() => ApplyFilterToImageFragmentAsm(bitmapBytesIntPtr, bitmapBytes.Length, bitmapWidth, startIndex, endIndex, filteredFragmentIntPtr));
 						listOfTasks.Add(task);
+
+						task.Wait();
 					}
 				}
 			}
 
 			await Task.WhenAll(listOfTasks).ConfigureAwait(false);
 
-			//! TODO Dla większej ilości tasków jest problem - nie wszystkie robią algorytm tak jakby
+			// Dla większej ilości tasków jest problem - nie wszystkie robią algorytm tak jakby
 			// chyba temu, że na jednym Threadzie są wspólne rejestry i sobie przeszkadzają algorytmy
 
 			var output = new byte[bitmapBytes.Length];

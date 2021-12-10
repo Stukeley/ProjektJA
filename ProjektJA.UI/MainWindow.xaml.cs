@@ -113,10 +113,6 @@ namespace ProjektJA.UI
 				result = Algorithms.CallCppAlgorithm(bitmapWithoutHeader, bitmapWidth, _threadCount).Result;
 			}
 
-			byte[] csharpResult = Algorithms.CallCsAlgorithm(bitmapWithoutHeader, bitmapWidth, _threadCount).Result;
-
-			CompareTwoArrays(result, csharpResult);
-
 			_stopwatch.Stop();
 			string _executionTime = "Execution time: " + _stopwatch.Elapsed.ToString(@"mm\:ss\.fff");
 			ExecutionTimeBlock.Text = _executionTime;
