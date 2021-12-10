@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ProjektJA.UI
@@ -12,6 +14,8 @@ namespace ProjektJA.UI
 
 		[DllImport(@"C:\Programowanie\ProjektJA\x64\Debug\ProjektJA.Cpp.dll", CallingConvention = CallingConvention.StdCall)]
 		public static extern IntPtr ApplyFilterToImageFragmentCpp(IntPtr bitmapBytes, int bitmapBytesLength, int bitmapWidth, int startIndex, int endIndex);
+		
+		private static volatile Dictionary<int, byte[]> _listOfResults = new Dictionary<int, byte[]>();
 
 		// Funkcja pomocnicza testująca algorytm w C#.
 		public static async Task<byte[]> CallCsAlgorithm(byte[] bitmapBytes, int bitmapWidth, int threadCount)
@@ -64,9 +68,12 @@ namespace ProjektJA.UI
 			return output;
 		}
 
-		public static async Task<byte[]> CallAlgorithm(byte[] bitmapBytes, int bitmapWidth, int threadCount, bool asmAlgorithm)
+		// Główna funkcja obsługująca tworzenie wątków i zsynchronizowanie ich wyników.
+		public static byte[] CallAlgorithm(byte[] bitmapBytes, int bitmapWidth, int threadCount, bool asmAlgorithm)
 		{
-			var listOfTasks = new List<Task<byte[]>>();
+			var listOfThreads = new List<Thread>();
+			
+			_listOfResults.Clear();
 
 			int index = 0;
 			int bytesPerPart = bitmapBytes.Length / threadCount;
@@ -75,6 +82,8 @@ namespace ProjektJA.UI
 
 			for (int i = 0; i < threadCount; i++)
 			{
+				// Obliczenie fragmentu, dla którego ma pracować i-ty wątek.
+				
 				int startIndex = index;
 				int endIndex = startIndex + bytesPerPart - 1;
 
@@ -99,41 +108,50 @@ namespace ProjektJA.UI
 					filteredFragment[x] = bitmapBytes[startIndex + x];
 				}
 
-				Task<byte[]> task;
+				Thread thread;
+				int threadId = i;
 
 				if (asmAlgorithm)
 				{
-					task = Task.Run(() => CallApplyFilterToImageFragmentAsm(bitmapCopy, bitmapWidth, startIndex, endIndex, filteredFragment));
-					task.Wait();
+					thread = new Thread(()=>CallApplyFilterToImageFragmentAsm(bitmapCopy,bitmapWidth,startIndex,endIndex,filteredFragment, threadId));
+					listOfThreads.Add(thread);
+					thread.Start();
 				}
 				else
 				{
-					task = Task.Run(() => CallApplyFilterToImageFragmentCpp(bitmapCopy, bitmapWidth, startIndex, endIndex));
+					thread = new Thread(()=>CallApplyFilterToImageFragmentCpp(bitmapCopy, bitmapWidth, startIndex, endIndex, threadId));
+					listOfThreads.Add(thread);
+					thread.Start();
 				}
 				
-				listOfTasks.Add(task);
 			}
 
-			await Task.WhenAll(listOfTasks).ConfigureAwait(false);
-
-			var output = new byte[bitmapBytes.Length];
+			foreach (var thread in listOfThreads)
+			{
+				thread.Join();
+			}
+			
+			byte[] output = new byte[bitmapBytes.Length];;
+			
 			index = 0;
 
-			for (int i = 0; i < listOfTasks.Count; i++)
-			{
-				var task = listOfTasks[i];
-				var taskResult = task.Result;
+			// Ustawiamy wyniki w odpowiedniej kolejności.
+			_listOfResults = _listOfResults.OrderBy(x => x.Key).ToDictionary(pair => pair.Key, pair => pair.Value);
 
-				for (int j = 0; j < taskResult.Length; j++)
+			for (int i = 0; i < _listOfResults.Count; i++)
+			{
+				var resultPart = _listOfResults[i];
+
+				for (int j = 0; j < resultPart.Length; j++)
 				{
-					output[index++] = taskResult[j];
+					output[index++] = resultPart[j];
 				}
 			}
 
 			return output;
 		}
-		
-		private static byte[] CallApplyFilterToImageFragmentAsm(byte[] bitmapBytes, int bitmapWidth, int startIndex, int endIndex, byte[] filteredFragment)
+
+		private static void CallApplyFilterToImageFragmentAsm(byte[] bitmapBytes, int bitmapWidth, int startIndex, int endIndex, byte[] filteredFragment, int threadId)
 		{
 			byte[] output = null;
 			
@@ -146,7 +164,7 @@ namespace ProjektJA.UI
 					var filteredFragmentIntPtr = new IntPtr(pointerToFilteredFragmentArray);
 					
 					var result = ApplyFilterToImageFragmentAsm(bitmapBytesIntPtr, bitmapBytes.Length, bitmapWidth, startIndex, endIndex, filteredFragmentIntPtr);
-
+					
 					byte* resultPointer = (byte*) result;
 
 					output = new byte[endIndex - startIndex + 1];
@@ -157,11 +175,11 @@ namespace ProjektJA.UI
 					}
 				}
 			}
-
-			return output;
+			
+			_listOfResults.Add(threadId, output);
 		}
 
-		private static byte[] CallApplyFilterToImageFragmentCpp(byte[] bitmapBytes, int bitmapWidth, int startIndex, int endIndex)
+		private static void CallApplyFilterToImageFragmentCpp(byte[] bitmapBytes, int bitmapWidth, int startIndex, int endIndex, int threadId)
 		{
 			byte[] output = null;
 			
@@ -184,7 +202,7 @@ namespace ProjektJA.UI
 				}
 			}
 
-			return output;
+			_listOfResults.Add(threadId, output);
 		}
 	}
 }

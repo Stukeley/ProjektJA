@@ -18,6 +18,7 @@ namespace ProjektJA.UI
 		private int _threadCount;
 		private byte[] _bitmapBytes;
 		private byte[] _outputBitmapBytes;
+		private bool _firstRun;
 
 		public MainWindow()
 		{
@@ -25,6 +26,7 @@ namespace ProjektJA.UI
 
 			CsAlgorithmBox.IsChecked = true;
 			_asmAlgorithm = false;
+			_firstRun = true;
 			_stopwatch = new Stopwatch();
 		}
 
@@ -100,19 +102,17 @@ namespace ProjektJA.UI
 
 			int bitmapWidth = BitConverter.ToInt32(bitmapHeader.Skip(18).Take(4).ToArray(), 0) * 3;
 
+			InitializeAlgorithm(bitmapWithoutHeader, bitmapWidth);
+
 			_stopwatch.Restart();
 
-			byte[] result = Algorithms.CallAlgorithm(bitmapWithoutHeader, bitmapWidth,_threadCount,_asmAlgorithm).Result;
-
-			// var resultCs = Algorithms.CallCsAlgorithm(bitmapWithoutHeader, bitmapWidth, _threadCount).Result;
-			//
-			// CompareTwoArrays(result, resultCs);
-
+			byte[] result = Algorithms.CallAlgorithm(bitmapWithoutHeader, bitmapWidth,_threadCount,_asmAlgorithm);
+			
 			_stopwatch.Stop();
 			string executionTime = "Execution time: " + _stopwatch.Elapsed.ToString(@"mm\:ss\.fff");
 			ExecutionTimeBlock.Text = executionTime;
 
-			// Reconstruct bitmap header.
+			// Rekonstrukcja nagłówka bitmapy.
 			var outputBitmapComplete = new byte[_bitmapBytes.Length];
 			int x = 0;
 
@@ -126,7 +126,7 @@ namespace ProjektJA.UI
 				outputBitmapComplete[x] = result[x - 54];
 			}
 
-			// Display output bitmap on screen.
+			// Wyświetlenie obrazu z nałożonym filtrem na ekranie.
 			var bitmapImage = ConvertBitmapBytesToImageSource(outputBitmapComplete);
 			var image = new System.Windows.Controls.Image()
 			{
@@ -139,13 +139,21 @@ namespace ProjektJA.UI
 
 			_outputBitmapBytes = outputBitmapComplete;
 
-			// Allow the output image to be saved.
 			SaveBitmapButton.IsEnabled = true;
 
-			// Debug only - save the image separately.
+			// Tylko w trybie DEBUG - zapisanie obrazu.
 #if DEBUG
 			File.WriteAllBytes("TestOutput.bmp", outputBitmapComplete);
 #endif
+		}
+
+		private void InitializeAlgorithm(byte[] bitmapWithoutHeader, int bitmapWidth)
+		{
+			if (_firstRun)
+			{
+				_firstRun = false;
+				_ = Algorithms.CallAlgorithm(bitmapWithoutHeader, bitmapWidth, _threadCount, _asmAlgorithm);
+			}
 		}
 
 		private static void CompareTwoArrays(byte[] first, byte[] second)
