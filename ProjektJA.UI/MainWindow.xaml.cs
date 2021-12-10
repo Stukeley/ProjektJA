@@ -102,20 +102,15 @@ namespace ProjektJA.UI
 
 			_stopwatch.Restart();
 
-			byte[] result = null;
+			byte[] result = Algorithms.CallAlgorithm(bitmapWithoutHeader, bitmapWidth,_threadCount,_asmAlgorithm).Result;
 
-			if (_asmAlgorithm)
-			{
-				result = Algorithms.CallAsmAlgorithm(bitmapWithoutHeader, bitmapWidth, _threadCount).Result;
-			}
-			else
-			{
-				result = Algorithms.CallCppAlgorithm(bitmapWithoutHeader, bitmapWidth, _threadCount).Result;
-			}
+			// var resultCs = Algorithms.CallCsAlgorithm(bitmapWithoutHeader, bitmapWidth, _threadCount).Result;
+			//
+			// CompareTwoArrays(result, resultCs);
 
 			_stopwatch.Stop();
-			string _executionTime = "Execution time: " + _stopwatch.Elapsed.ToString(@"mm\:ss\.fff");
-			ExecutionTimeBlock.Text = _executionTime;
+			string executionTime = "Execution time: " + _stopwatch.Elapsed.ToString(@"mm\:ss\.fff");
+			ExecutionTimeBlock.Text = executionTime;
 
 			// Reconstruct bitmap header.
 			var outputBitmapComplete = new byte[_bitmapBytes.Length];
