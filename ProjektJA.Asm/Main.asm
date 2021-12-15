@@ -3,7 +3,7 @@
 
 .DATA
 SumOfMasks QWORD 1							; suma masek z poni¿szej tablicy (zawsze sta³a, dla filtra HP1 równa 1)
-Masks QWORD 0, -1, 0, -1, 5, -1, 0, -1, 0	; tablica masek 3x3
+Masks BYTE 0, -1, 0, -1, 5, -1, 0, -1, 0	; tablica masek 3x3
 
 .CODE
 
@@ -13,6 +13,28 @@ mov	eax, 1 	;TRUE
 ret
 
 DllEntry ENDP
+
+;-------------------------------------------------------------------------
+; Procedura obliczaj¹ca sumê masek, zawartych w tablicy Masks, i zapisuj¹ca j¹ do zmiennej SumOfMasks.
+; Procedura nie oczekuje ani nie zwraca ¿adnych wartoœci.
+;-------------------------------------------------------------------------
+GetSumOfMasks proc
+
+push RAX
+
+; Instrukcja wektorowa - movdqu, przenosz¹ca dane z tablicy w pamiêci jako wektor do rejestru XMM
+movdqu xmm15, xmmword ptr [Masks]
+
+; Instrukcja wektorowa - 
+; ? co tu zrobiæ - hardstuck, todo
+
+mov SumOfMasks, 1
+
+pop RAX
+
+ret
+
+GetSumOfMasks endp
 
 ;-------------------------------------------------------------------------
 ; Funkcja obliczaj¹ca now¹ wartoœæ piksela na podstawie tablicy 3x3, zawieraj¹cej wartoœci R, G lub B dla fragmentu bitmapy.
@@ -31,6 +53,9 @@ CalculateNewPixelValue proc
 	mov RBX, 0
 	lea R12, Masks	; Adres tablicy (ustawiamy tylko raz)
 
+	; Inicjalizujemy sumê masek
+	call GetSumOfMasks
+
 Petla1:				; for (int y = 0; y < 3; y++)
 	mov RCX, 0
 	cmp RBX, 3
@@ -43,7 +68,7 @@ Petla2:				; for (int x = 0; x < 3; x++)
 	add R10, RCX	; R10 = 3 * y + x
 
 	movzx RDX, BYTE PTR [R11 + R10]
-	mov R13, [R12 + 8 * R10]
+	movsx R13, BYTE PTR [R12 + 1 * R10]
 	imul RDX, R13	; imageFragment[x + y * 3] * Masks[x + y * 3]
 	add RAX, RDX	; newPixelWeightedValue += factor;
 	inc RCX
