@@ -18,7 +18,6 @@ namespace ProjektJA.UI
 		private int _threadCount;
 		private byte[] _bitmapBytes;
 		private byte[] _outputBitmapBytes;
-		private bool _firstRun;
 
 		public MainWindow()
 		{
@@ -26,7 +25,6 @@ namespace ProjektJA.UI
 
 			CsAlgorithmBox.IsChecked = true;
 			_asmAlgorithm = false;
-			_firstRun = true;
 			_stopwatch = new Stopwatch();
 		}
 
@@ -102,12 +100,19 @@ namespace ProjektJA.UI
 
 			int bitmapWidth = BitConverter.ToInt32(bitmapHeader.Skip(18).Take(4).ToArray(), 0) * 3;
 
-			InitializeAlgorithm(bitmapWithoutHeader, bitmapWidth);
-
 			_stopwatch.Restart();
 
-			byte[] result = Algorithms.CallAlgorithm(bitmapWithoutHeader, bitmapWidth,_threadCount,_asmAlgorithm);
-			
+			byte[] result = null;
+
+			if (_asmAlgorithm)
+			{
+				result = Algorithms.CallAsmAlgorithm(bitmapWithoutHeader, bitmapWidth, _threadCount).Result;
+			}
+			else
+			{
+				result = Algorithms.CallCppAlgorithm(bitmapWithoutHeader, bitmapWidth, _threadCount).Result;
+			}
+
 			_stopwatch.Stop();
 			string executionTime = "Execution time: " + _stopwatch.Elapsed.ToString(@"mm\:ss\.fff");
 			ExecutionTimeBlock.Text = executionTime;
@@ -145,15 +150,6 @@ namespace ProjektJA.UI
 #if DEBUG
 			File.WriteAllBytes("TestOutput.bmp", outputBitmapComplete);
 #endif
-		}
-
-		private void InitializeAlgorithm(byte[] bitmapWithoutHeader, int bitmapWidth)
-		{
-			if (_firstRun)
-			{
-				_firstRun = false;
-				_ = Algorithms.CallAlgorithm(bitmapWithoutHeader, bitmapWidth, _threadCount, _asmAlgorithm);
-			}
 		}
 
 		private static void CompareTwoArrays(byte[] first, byte[] second)

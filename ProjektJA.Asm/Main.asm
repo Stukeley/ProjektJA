@@ -5,15 +5,6 @@
 SumOfMasks QWORD 1							; suma masek z poni¿szej tablicy (zawsze sta³a, dla filtra HP1 równa 1)
 Masks QWORD 0, -1, 0, -1, 5, -1, 0, -1, 0	; tablica masek 3x3
 
-ValuesR BYTE 9 dup (0)	; tablica przechowuj¹ca wartoœci R pikseli z obszaru 3x3
-ValuesG BYTE 9 dup (0)	; tablica przechowuj¹ca wartoœci G pikseli z obszaru 3x3
-ValuesB BYTE 9 dup (0)	; tablica przechowuj¹ca wartoœci B pikseli z obszaru 3x3
-
-BitmapLength QWORD 0	; zmienna przechowuj¹ca rozmiar bitmapy (zapisywana w pamiêci po rozpoczêciu algorytmu)
-BitmapWidth QWORD 0		; zmienna przechowuj¹ca szerokoœæ (zapisywana w pamiêci po rozpoczêciu algorytmu)
-StartIndex QWORD 0		; zmienna przechowuj¹ca pocz¹tkowy indeks, dla którego mamy przeprowadziæ algorytm (zapisywana w pamiêci po rozpoczêciu algorytmu)
-EndIndex QWORD 0		; zmienna przechowuj¹ca koñcowy indeks, dla którego mamy przeprowadziæ algorytm (zapisywana w pamiêci po rozpoczêciu algorytmu)
-
 .CODE
 
 DllEntry PROC hInstDLL:DWORD, reason:DWORD, reserved1:DWORD
@@ -97,15 +88,26 @@ ApplyFilterToImageFragmentAsm proc
 	xor R10, R10
 
 	; Przeniesiemy poszczególne parametry do zmiennych w pamiêci
-	mov BitmapLength, RDX
-	mov BitmapWidth, R8
-	mov StartIndex, R9
+	cvtsi2sd xmm0, RDX
+	cvtsi2sd xmm1, R8
+	cvtsi2sd xmm2, R9
+
+	; Przeniesiemy poszczególne parametry na stos.
+	;mov QWORD PTR [RSP + 80], RDX	; [RSP + 80] - rozmiar bitmapy
+	;mov QWORD PTR [RSP + 88], R8	; [RSP + 88] - szerokoœæ bitmapy
+	;mov QWORD PTR [RSP + 96], R9	; [RSP + 96] - indeks startowy
+	
+									; [RSP + 40] - indeks koñcowy
+									; [RSP + 48] - wskaŸnik na bitmapê wyjœciow¹
+									; [RSP + 56] - wskaŸnik na pomocnicz¹ tablicê wartoœci R
+									; [RSP + 64] - wskaŸnik na pomocnicz¹ tablicê wartoœci G
+									; [RSP + 72] - wskaŸnik na pomocnicz¹ tablicê wartoœci B
 
 	mov R11, QWORD PTR [RSP + 40]	; R11 - koñcowy indeks (tymczasowo)
 
 	mov RDX, QWORD PTR [RSP + 48]	; RDX - wskaŸnik na bitmapê wyjœciow¹ (tymczasowo)
 
-	mov EndIndex, R11
+	;mov EndIndex, R11
 
 	inc R11			; R11 = endIndex - startIndex + 1 - ! to jest chyba niepotrzebne ju¿
 	sub R11, R9
@@ -116,34 +118,35 @@ ApplyFilterToImageFragmentAsm proc
 	jmp SetupGlownejPetli
 
 SetupGlownejPetli:
-	mov R11, StartIndex	; i = R11
+	cvtsd2si R11, xmm2	; i = R11
 
 GlownaPetla:		; for (int i = startIndex; i <= endIndex; i += 3)
 
 	mov R12, R11	; centerPixelIndex = i; (R12) !<- to ewentualnie mo¿na wyeliminowaæ, bo i == centerPixelIndex
 
-	mov R13, BitmapWidth ; R13 = bitmapWidth
+	cvtsd2si R13, xmm1 ; R13 = bitmapWidth
 
 	cmp R12, R13	; if (centerPixelIndex < bitmapWidth)
 	jl KoniecGlownejPetli
 
 	mov RAX, R11	; if (i % bitmapWidth == 0) - dzielimy RAX przez RBX, reszta zapisana w RDX
 	xor RDX, RDX
-	mov RBX, BitmapWidth
+	cvtsd2si RBX, xmm1
 	div RBX
 
 	cmp RDX, 0
 	je KoniecGlownejPetli
 
-	mov RBX, BitmapLength ; if (i >= bitmapBytesLength - bitmapWidth)
-	sub RBX, BitmapWidth
+	cvtsd2si RBX, xmm0 ; if (i >= bitmapBytesLength - bitmapWidth)
+	cvtsd2si RCX, xmm1
+	sub RBX, RCX
 	cmp R12, RBX
 	jge KoniecGlownejPetli
 
 	mov RAX, R11		; if ((i + 2 + 1) % bitmapWidth == 0) - dzielimy RAX przez RBX, reszta zapisana w RDX
 	add RAX, 3
 	xor RDX, RDX
-	mov RBX, BitmapWidth
+	cvtsd2si RBX, xmm1
 	div RBX
 
 	cmp RDX, 0	
@@ -166,7 +169,8 @@ GlownaPetlaX:		; for (int x = 0; x < 3; x++) (R14 = x)
 
 	mov RAX, R13	; bitmapWidth * (y - 1)
 	dec RAX
-	imul RAX, BitmapWidth
+	cvtsd2si RCX, xmm1
+	imul RAX, RCX
 
 	add RBX, RAX
 	add RBX, R12	; + centerPixelIndex
@@ -176,19 +180,19 @@ GlownaPetlaX:		; for (int x = 0; x < 3; x++) (R14 = x)
 	add RCX, R14
 
 	mov R15B, BYTE PTR [R8 + RBX]	; R15B = bitmapBytes[index]
-	lea RAX, ValuesR
+	mov RAX, QWORD PTR [RSP + 56]
 
 	mov BYTE PTR [RAX + RCX], R15B ; valuesR[x + y * 3] = BL
 
 	inc RBX						; R15B = bitmapBytes[index + 1]
 	mov R15B, BYTE PTR [R8 + RBX]
-	lea RAX, ValuesG
+	mov RAX, QWORD PTR [RSP + 64]
 
 	mov BYTE PTR [RAX + RCX], R15B ; valuesG[x + y * 3] = BL
 
 	inc RBX						; R15B = bitmapBytes[index + 2]
 	mov R15B, BYTE PTR [R8 + RBX]
-	lea RAX, ValuesB
+	mov RAX, QWORD PTR [RSP + 72]
 
 	mov BYTE PTR [RAX + RCX], R15B ; valuesB[x + y * 3] = BL
 
@@ -200,34 +204,37 @@ GlownaPetlaX:		; for (int x = 0; x < 3; x++) (R14 = x)
 
 KoniecPetliXY:
 
-	lea RCX, ValuesR	; adres ValuesR do RCX - przekazywany do procedury CalculateNewPixelValue
+	mov RCX, QWORD PTR [RSP + 56]	; adres ValuesR do RCX - przekazywany do procedury CalculateNewPixelValue
 	call CalculateNewPixelValue
 
 	; filteredFragment[i - startIndex] = CalculateNewPixelValue(valuesR);
 
 	mov RDX, R11	; i - startIndex
-	sub RDX, StartIndex
+	cvtsd2si RCX, xmm2
+	sub RDX, RCX
 
 	mov BYTE PTR [R9 + RDX], AL	; wykorzystujemy AL, czyli dolne 8 bitów rejestru RAX (w którym jest wartoœæ zwracana z CalculateNewPixelValue)
 
-	lea RCX, ValuesG	; adres ValuesG do RCX - przekazywany do procedury CalculateNewPixelValue
+	mov RCX, QWORD PTR [RSP + 64]	; adres ValuesG do RCX - przekazywany do procedury CalculateNewPixelValue
 	call CalculateNewPixelValue
 
 	; filteredFragment[i - startIndex + 1] = CalculateNewPixelValue(valuesG);
 
 	mov RDX, R11	; i - startIndex + 1
-	sub RDX, StartIndex
+	cvtsd2si RCX, xmm2
+	sub RDX, RCX
 	inc RDX
 
 	mov BYTE PTR [R9 + RDX], AL	; wykorzystujemy AL, czyli dolne 8 bitów rejestru RAX (w którym jest wartoœæ zwracana z CalculateNewPixelValue)
 
-	lea RCX, ValuesB	; adres ValuesB do RCX - przekazywany do procedury CalculateNewPixelValue
+	mov RCX, QWORD PTR [RSP + 72]	; adres ValuesB do RCX - przekazywany do procedury CalculateNewPixelValue
 	call CalculateNewPixelValue
 
 	; filteredFragment[i - startIndex + 2] = CalculateNewPixelValue(valuesB);
 
 	mov RDX, R11	; i - startIndex + 2
-	sub RDX, StartIndex
+	cvtsd2si RCX, xmm2
+	sub RDX, RCX
 	add RDX, 2
 
 	mov BYTE PTR [R9 + RDX], AL ; wykorzystujemy AL, czyli dolne 8 bitów rejestru RAX (w którym jest wartoœæ zwracana z CalculateNewPixelValue)
@@ -236,7 +243,7 @@ KoniecPetliXY:
 
 KoniecGlownejPetli:
 	add R11, 3
-	cmp R11, EndIndex
+	cmp R11, QWORD PTR [RSP + 40]
 	jg KoniecProgramu
 	jmp GlownaPetla
 	
