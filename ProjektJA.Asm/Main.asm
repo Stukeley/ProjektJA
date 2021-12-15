@@ -88,14 +88,10 @@ ApplyFilterToImageFragmentAsm proc
 	xor R10, R10
 
 	; Przeniesiemy poszczególne parametry do zmiennych w pamiêci
+	; Instrukcja wektorowa - cvtsi2sd, zamieniaj¹ca liczbê ca³kowit¹ na wektor
 	cvtsi2sd xmm0, RDX
 	cvtsi2sd xmm1, R8
 	cvtsi2sd xmm2, R9
-
-	; Przeniesiemy poszczególne parametry na stos.
-	;mov QWORD PTR [RSP + 80], RDX	; [RSP + 80] - rozmiar bitmapy
-	;mov QWORD PTR [RSP + 88], R8	; [RSP + 88] - szerokoœæ bitmapy
-	;mov QWORD PTR [RSP + 96], R9	; [RSP + 96] - indeks startowy
 	
 									; [RSP + 40] - indeks koñcowy
 									; [RSP + 48] - wskaŸnik na bitmapê wyjœciow¹
@@ -124,6 +120,7 @@ GlownaPetla:		; for (int i = startIndex; i <= endIndex; i += 3)
 
 	mov R12, R11	; centerPixelIndex = i; (R12) !<- to ewentualnie mo¿na wyeliminowaæ, bo i == centerPixelIndex
 
+	; Instrukcja wektorowa - cvtsd2si, zamieniaj¹ca wektor na liczbê ca³kowit¹
 	cvtsd2si R13, xmm1 ; R13 = bitmapWidth
 
 	cmp R12, R13	; if (centerPixelIndex < bitmapWidth)
