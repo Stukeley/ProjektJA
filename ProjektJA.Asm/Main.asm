@@ -54,23 +54,27 @@ Petla2:				; for (int x = 0; x < 3; x++)
 
 Koniec:
 	; Przywracamy wartoœci rejestrów R10, R11, R12 i R13 ze stosu
+
+	; Instrukcja wektorowa - movq, przenosz¹ca 64-bitow¹ liczbê ze znakiem z lub do rejestru XMM
+	;						 maxpd, zwracaj¹ca wartoœæ maksymaln¹
+	;						 minpd, zwracaj¹ca wartoœæ minimaln¹
+
+	movq xmm14, RAX		; if (newPixelWeightedValue < 0) newPixelWeightedValue = 0;
+	mov R13, 0
+	movq xmm15, R13
+	maxpd xmm14, xmm15
+
+	mov R13, 255		; if (newPixelWeightedValue > 255) newPixelWeightedValue = 255;
+	movq xmm15, R13
+	minpd xmm14, xmm15
+
+	movq RAX, xmm14
+
 	pop R13
 	pop R12
 	pop R11
 	pop R10
 
-	cmp RAX, 0
-	jl Zero
-	cmp RAX, 255
-	ja DwaPiecPiec
-	ret
-
-Zero:				; if (newPixelWeightedValue < 0) newPixelWeightedValue = 0;
-	mov RAX, 0
-	ret
-
-DwaPiecPiec:		; if (newPixelWeightedValue > 255) newPixelWeightedValue = 255;
-	mov RAX, 255
 	ret
 
 CalculateNewPixelValue endp
