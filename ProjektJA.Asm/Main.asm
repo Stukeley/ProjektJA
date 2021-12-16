@@ -95,8 +95,6 @@ Petla2:				; for (int x = 0; x < 3; x++)
 	jmp Petla1
 
 Koniec:
-	; Przywracamy wartoœci rejestrów R10, R11, R12 i R13 ze stosu
-
 	; Instrukcja wektorowa - movq, przenosz¹ca 64-bitow¹ liczbê ze znakiem z lub do rejestru XMM
 	;						 maxpd, zwracaj¹ca wartoœæ maksymaln¹
 	;						 minpd, zwracaj¹ca wartoœæ minimaln¹
@@ -112,6 +110,24 @@ Koniec:
 
 	movq RAX, xmm14
 
+	; Dzielimy wynik (zmiennoprzecinkowo) przez sumê masek by zapobiec zmianie jasnoœci obrazu wyjœciowego (tylko gdy suma jest ró¿na od 0).
+	; Instrukcja wektorowa - divss, dziel¹ca wektor (reprezentuj¹cy liczbê zmiennoprzecinkow¹) przez drugi.
+	; Ponadto wykorzystano wektorow¹ instrukcje pxor, oraz instrukcje konwertuj¹ce cvtsi2ss i cvttss2si.
+	cmp SumOfMasks, 0
+	je KoniecReturn
+
+	pxor xmm3, xmm3
+	pxor xmm4, xmm4
+
+	cvtsi2ss xmm3, RAX
+	cvtsi2ss xmm4, SumOfMasks
+	divss xmm3, xmm4
+	cvtss2si RAX, xmm3
+
+	jmp KoniecReturn
+
+KoniecReturn:
+	; Przywracamy wartoœci rejestrów R10, R11, R12 i R13 ze stosu
 	pop R13
 	pop R12
 	pop R11
