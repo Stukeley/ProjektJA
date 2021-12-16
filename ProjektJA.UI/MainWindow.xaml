@@ -14,10 +14,10 @@
 			<RowDefinition Height="7*"/>
 		</Grid.RowDefinitions>
 
-		<TextBlock Grid.Row="0" Text="Browse for BMP file" FontSize="16" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="DemiBold"/>
+		<TextBlock Grid.Row="0" Text="Przeglądaj w poszukiwaniu pliku BMP" FontSize="16" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="DemiBold"/>
 
 		<StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center">
-			<Button x:Name="FileBrowserButton" Content="Browse" FontSize="12" Height="30" Padding="2" Click="FileBrowserButton_Click"/>
+			<Button x:Name="FileBrowserButton" Content="Przeglądaj" FontSize="12" Height="30" Padding="2" Click="FileBrowserButton_Click"/>
 			<TextBox x:Name="FilePathBox" FontSize="12" Width="500" Height="30" Margin="20,0,0,0"/>
 		</StackPanel>
 
@@ -29,20 +29,22 @@
 					Checked="AsmAlgorithmBox_Checked" Unchecked="AsmAlgorithmBox_Unchecked"/>
 			</StackPanel>
 
-			<Button x:Name="FilterBitmapButton" Content="Filter" FontSize="12" Height="30" Width="50" IsEnabled="False" Click="FilterBitmapButton_Click" Margin="10,0,0,0"
+			<Button x:Name="FilterBitmapButton" Content="Filtruj" FontSize="12" Height="30" Width="50" IsEnabled="False" Click="FilterBitmapButton_Click" Margin="10,0,0,0"
 					Padding="2"/>
-			<Button x:Name="SaveBitmapButton" Content="Save" FontSize="12" Height="30" Width="50" IsEnabled="False" Click="SaveBitmapButton_Click"
+			<Button x:Name="SaveBitmapButton" Content="Zapisz" FontSize="12" Height="30" Width="50" IsEnabled="False" Click="SaveBitmapButton_Click"
 			        Margin="10,0,0,0" Padding="2"/>
 
 			<TextBlock x:Name="ExecutionTimeBlock" FontSize="12" VerticalAlignment="Center" Margin="10,0,0,0"/>
 
 			<StackPanel>
-				<TextBlock Text="How many threads?" FontSize="12" Margin="10,0,0,0"/>
+				<TextBlock Text="Ile wątków? 1-16" FontSize="12" Margin="10,0,0,0" HorizontalAlignment="Center"/>
 				<TextBox x:Name="ThreadCountBox" FontSize="12" Margin="10,0,0,0" VerticalAlignment="Center" Width="100" Text="1"/>
 			</StackPanel>
 		</StackPanel>
 
-		<StackPanel Grid.Row="3" x:Name="ContentPanel" Margin="0,10,0,0" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-		</StackPanel>
+		<ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Auto" Margin="10">
+			<StackPanel x:Name="ContentPanel" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+			</StackPanel>
+		</ScrollViewer>
 	</Grid>
 </Window>

@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 
 namespace ProjektJA.UI
@@ -18,6 +19,7 @@ namespace ProjektJA.UI
 		private int _threadCount;
 		private byte[] _bitmapBytes;
 		private byte[] _outputBitmapBytes;
+		private int _executionNumber;
 
 		public MainWindow()
 		{
@@ -26,6 +28,7 @@ namespace ProjektJA.UI
 			CsAlgorithmBox.IsChecked = true;
 			_asmAlgorithm = false;
 			_stopwatch = new Stopwatch();
+			_executionNumber = 1;
 		}
 
 		private void FileBrowserButton_Click(object sender, RoutedEventArgs e)
@@ -52,22 +55,36 @@ namespace ProjektJA.UI
 				FilePathBox.Text = fileName;
 				_filePath = fileName;
 
-				// Load bitmap as byte array.
+				// Ładujemy bitmapę jako tablicę bajtów.
 				var bitmapBytes = File.ReadAllBytes(_filePath);
 				_bitmapBytes = bitmapBytes;
 
-				// Display input bitmap on screen.
+				// Pokazanie bitmapy wejściowej na ekranie.
 				var bitmapImage = ConvertBitmapBytesToImageSource(bitmapBytes);
-				var image = new System.Windows.Controls.Image()
+				var image = new Image()
 				{
 					Source = bitmapImage,
 					Width = 200,
 					Height = 200
 				};
-				ContentPanel.Children.Add(image);
+
+				var textBlock = new TextBlock()
+				{
+					Text = "Wejście",
+					Margin = new Thickness(0, 0, 0, 10),
+					HorizontalAlignment = HorizontalAlignment.Center,
+					FontWeight = FontWeights.Bold
+				};
+
+				var panel = new StackPanel();
+				panel.Children.Add(textBlock);
+				panel.Children.Add(image);
+
+				ContentPanel.Children.Add(panel);
 
 				FilterBitmapButton.IsEnabled = true;
 				SaveBitmapButton.IsEnabled = false;
+				_executionNumber = 1;
 			}
 
 		}
@@ -78,13 +95,13 @@ namespace ProjektJA.UI
 
 			if (_threadCount > MaximumThreadCount)
 			{
-				MessageBox.Show($"The maximum amount of threads is {MaximumThreadCount}.", "Too many threads", MessageBoxButton.OK, MessageBoxImage.Warning);
+				MessageBox.Show($"Maksymalna ilość wątków to {MaximumThreadCount}.", "Zbyt dużo wątków", MessageBoxButton.OK, MessageBoxImage.Warning);
 				_threadCount = MaximumThreadCount;
 				ThreadCountBox.Text = $"{MaximumThreadCount}";
 			}
 			else if (_threadCount <= 0)
 			{
-				MessageBox.Show($"The minimum amount of threads is 1.", "Threads set to 0 or less", MessageBoxButton.OK, MessageBoxImage.Warning);
+				MessageBox.Show($"Minimalna ilość wątków to 1.", "Ilość wątków ustawiona na 0 lub mniej", MessageBoxButton.OK, MessageBoxImage.Warning);
 				_threadCount = 1;
 				ThreadCountBox.Text = "1";
 			}
@@ -133,14 +150,28 @@ namespace ProjektJA.UI
 
 			// Wyświetlenie obrazu z nałożonym filtrem na ekranie.
 			var bitmapImage = ConvertBitmapBytesToImageSource(outputBitmapComplete);
-			var image = new System.Windows.Controls.Image()
+			var image = new Image()
 			{
 				Source = bitmapImage,
 				Width = 200,
-				Height = 200,
-				Margin = new Thickness(10, 0, 0, 0)
+				Height = 200
 			};
-			ContentPanel.Children.Add(image);
+
+			// Identyfikator obrazu
+			var textBlock = new TextBlock()
+			{
+				Text = $"{_executionNumber++}",
+				Margin = new Thickness(0, 0, 0, 10),
+				HorizontalAlignment = HorizontalAlignment.Center,
+				FontWeight = FontWeights.Bold
+			};
+
+			var panel = new StackPanel() { Margin = new Thickness(10, 0, 0, 0) };
+
+			panel.Children.Add(textBlock);
+			panel.Children.Add(image);
+
+			ContentPanel.Children.Add(panel);
 
 			_outputBitmapBytes = outputBitmapComplete;
 
