@@ -2,8 +2,9 @@
 ;INCLUDE C:\masm32\include\windows.inc
 
 .DATA
-SumOfMasks QWORD 1							; suma masek z poni¿szej tablicy (zawsze sta³a, dla filtra HP1 równa 1)
+SumOfMasks QWORD ?							; suma masek z poni¿szej tablicy (zawsze sta³a, dla filtra HP1 równa 1)
 Masks BYTE 0, -1, 0, -1, 5, -1, 0, -1, 0	; tablica masek 3x3
+mask_80h BYTE 16 dup (80h)					; Zmienna pomocnicza do obliczenia sumy
 
 .CODE
 
@@ -16,20 +17,33 @@ DllEntry ENDP
 
 ;-------------------------------------------------------------------------
 ; Procedura obliczaj¹ca sumê masek, zawartych w tablicy Masks, i zapisuj¹ca j¹ do zmiennej SumOfMasks.
+; Korzysta z instrukcji wektorowych do przechowania tablicy Masks w rejestrze xmm i ich zsumowania.
 ; Procedura nie oczekuje ani nie zwraca ¿adnych wartoœci.
 ;-------------------------------------------------------------------------
 GetSumOfMasks proc
 
 push RAX
+push RDX
 
-; Instrukcja wektorowa - movdqu, przenosz¹ca dane z tablicy w pamiêci jako wektor do rejestru XMM
-movdqu xmm15, xmmword ptr [Masks]
+; Instrukcja wektorowa - movq, przenosz¹ca dane z tablicy w pamiêci jako wektor do rejestru XMM
+movq xmm3, QWORD PTR [Masks]
+movsx EAX, BYTE PTR [Masks + 8]
+movdqu xmm5, xmmword ptr [mask_80h]
+pxor xmm3, xmm5
 
-; Instrukcja wektorowa - 
-; ? co tu zrobiæ - hardstuck, todo
+pxor xmm4, xmm4
+; Instrukcja wektorowa - psadbw, sumuj¹ca ró¿nice elementów dwóch wektorów; poniewa¿ suma wykonywana jest dla elementów bez znaku, wówczas musimy przed i po zsumowaniu zmieniæ zakres sumy
+;						z liczby bez znaku na liczbê ze znakiem.
+;						w zwi¹zku z tym równolegle odejmujemy przesuniêcia (zawarte w xmm3), a nastêpnie korygujemy za pomoc¹ instrukcji sub
 
-mov SumOfMasks, 1
+psadbw xmm4, xmm3
+movd EDX, xmm4
+sub RAX, 8 * 80h
+add RAX, RDX
 
+mov SumOfMasks, RAX
+
+pop RDX
 pop RAX
 
 ret
@@ -53,8 +67,11 @@ CalculateNewPixelValue proc
 	mov RBX, 0
 	lea R12, Masks	; Adres tablicy (ustawiamy tylko raz)
 
-	; Inicjalizujemy sumê masek
-	call GetSumOfMasks
+	; to ni¿ej - todo
+	;movdqu xmm10, xmmword ptr [Masks]
+	;movdqu xmm11, xmmword ptr [RCX]
+
+	;pmullw xmm11, xmm10
 
 Petla1:				; for (int y = 0; y < 3; y++)
 	mov RCX, 0
@@ -143,6 +160,9 @@ ApplyFilterToImageFragmentAsm proc
 	jmp SetupGlownejPetli
 
 SetupGlownejPetli:
+	; Inicjalizujemy sumê masek - jeden raz na wywo³anie programu
+	call GetSumOfMasks
+
 	cvtsd2si R11, xmm2	; i = R11
 
 GlownaPetla:		; for (int i = startIndex; i <= endIndex; i += 3)
