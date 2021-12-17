@@ -1,4 +1,9 @@
-﻿using System;
+﻿// Temat: Filtr górnoprzepustowy "HP1" dla obrazów typu Bitmap.
+// Opis: Algorytm nakłada filtr "HP1" dla pikseli obrazu typu Bitmap, podanego przez użytkownika przy pomocy interfejsu graficznego.
+// Autor: Rafał Klinowski, Informatyka, rok 3, sem. 5, gr. 5, data: 15.12.2021
+// Wersja: 1.0.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
