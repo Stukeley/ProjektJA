@@ -75,10 +75,6 @@ CalculateNewPixelValue proc
 	;						 phaddd - sumuj¹ca przyleg³e pary liczb w wektorze
 
 StartCalc:
-	pxor xmm5, xmm5
-	pxor xmm4, xmm4
-	pxor xmm3, xmm3
-
 	movq xmm5, QWORD PTR [Masks]
 	pmovsxbw xmm3, xmm5
 
@@ -97,7 +93,7 @@ StartCalc:
 
 	; Ostatnia (9-ta) wartoœæ mno¿ona osobno
 	movsx RBX, BYTE PTR [Masks + 8]
-	movzx RDX, BYTE PTR [RCX+8]
+	movzx RDX, BYTE PTR [RCX + 8]
 	imul RBX, RDX
 	add RAX, RBX
 
