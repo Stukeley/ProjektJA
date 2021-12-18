@@ -61,43 +61,45 @@ GetSumOfMasks endp
 ; wartoœæ zwracana znajduje siê w rejestrze RAX po wywo³aniu funkcji.
 ;-------------------------------------------------------------------------
 CalculateNewPixelValue proc
-	; Zapisujemy wartoœci rejestrów R10, R11, R12 i R13 na stosie
-	push R10
-	push R11
-	push R12
-	push R13
-	
-	mov R11, RCX	; przechowujemy adres parametru w R11
-	mov RAX, 0
-	mov RBX, 0
-	lea R12, Masks	; Adres tablicy (ustawiamy tylko raz)
 
-	; to ni¿ej - todo
-	;movdqu xmm10, xmmword ptr [Masks]
-	;movdqu xmm11, xmmword ptr [RCX]
+	; Dzia³anie poni¿szego fragmentu kodu:
+	; 1. Do rejestru xmm3 zapisujemy Maski, przekonwertowane (za pomoc¹ "sign extend") na wartoœci 16-bitowe
+	; 2. Do rejestru xmm4 zapisujemy wartoœci tablicy przekazanej jako parametr, przekonwertowane na wartoœci 16-bitowe
+	; 3. Mno¿ymy poszczególne wartoœci dwóch wektorów
+	; 4. Sumujemy wymno¿one wartoœci do uzyskania pojedynczej wartoœci
+	; 5. Traktujemy ostatnie (9-te) dzia³anie osobno
 
-	;pmullw xmm11, xmm10
+	; Instrukcja wektorowa - pmovsxbw, konwertuj¹ca liczby 8-bitowe na 16-bitowe i zapisuj¹ca je do wektora za pomoc¹ "sign-extend"
+	;						 pmovzxbw - j.w., ale konwersja za pomoc¹ "zero-extend"
+	;						 pmaddwd - mno¿¹ca odpowiadaj¹ce sobie liczby w dwóch wektorach i sumuj¹ca przyleg³e pary liczb
+	;						 phaddd - sumuj¹ca przyleg³e pary liczb w wektorze
 
-Petla1:				; for (int y = 0; y < 3; y++)
-	mov RCX, 0
-	cmp RBX, 3
-	je Koniec
-	jmp Petla2
+StartCalc:
+	pxor xmm5, xmm5
+	pxor xmm4, xmm4
+	pxor xmm3, xmm3
 
-Petla2:				; for (int x = 0; x < 3; x++)
-	mov R10, RBX
-	imul R10, 3
-	add R10, RCX	; R10 = 3 * y + x
+	movq xmm5, QWORD PTR [Masks]
+	pmovsxbw xmm3, xmm5
 
-	movzx RDX, BYTE PTR [R11 + R10]
-	movsx R13, BYTE PTR [R12 + 1 * R10]
-	imul RDX, R13	; imageFragment[x + y * 3] * Masks[x + y * 3]
-	add RAX, RDX	; newPixelWeightedValue += factor;
-	inc RCX
-	cmp RCX, 3
-	jne Petla2
-	inc RBX
-	jmp Petla1
+	movq xmm5, QWORD PTR [RCX]
+	pmovzxbw xmm4, xmm5
+
+	pmaddwd xmm3, xmm4
+
+	phaddd xmm3, xmm3
+	phaddd xmm3, xmm3
+
+	xor RAX, RAX
+	movd EAX, xmm3
+
+	movsxd RAX, EAX
+
+	; Ostatnia (9-ta) wartoœæ mno¿ona osobno
+	movsx RBX, BYTE PTR [Masks + 8]
+	movzx RDX, BYTE PTR [RCX+8]
+	imul RBX, RDX
+	add RAX, RBX
 
 Koniec:
 	; Instrukcja wektorowa - movq, przenosz¹ca 64-bitow¹ liczbê ze znakiem z lub do rejestru XMM
@@ -105,12 +107,13 @@ Koniec:
 	;						 minpd, zwracaj¹ca wartoœæ minimaln¹
 
 	movq xmm14, RAX		; if (newPixelWeightedValue < 0) newPixelWeightedValue = 0;
-	mov R13, 0
-	movq xmm15, R13
+
+	mov RBX, 0
+	movq xmm15, RBX
 	maxpd xmm14, xmm15
 
-	mov R13, 255		; if (newPixelWeightedValue > 255) newPixelWeightedValue = 255;
-	movq xmm15, R13
+	mov RBX, 255		; if (newPixelWeightedValue > 255) newPixelWeightedValue = 255;
+	movq xmm15, RBX
 	minpd xmm14, xmm15
 
 	movq RAX, xmm14
@@ -132,11 +135,6 @@ Koniec:
 	jmp KoniecReturn
 
 KoniecReturn:
-	; Przywracamy wartoœci rejestrów R10, R11, R12 i R13 ze stosu
-	pop R13
-	pop R12
-	pop R11
-	pop R10
 
 	ret
 

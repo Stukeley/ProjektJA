@@ -185,6 +185,10 @@ namespace ProjektJA.UI
 			// Tylko w trybie DEBUG - zapisanie obrazu.
 #if DEBUG
 			File.WriteAllBytes("TestOutput.bmp", outputBitmapComplete);
+
+			var dobra = HighPassImageFilter.ApplyFilterToImageFragmentCs(bitmapWithoutHeader, bitmapWithoutHeader.Length, bitmapWidth, 0, bitmapWithoutHeader.Length - 1);
+
+			CompareTwoArrays(result, dobra);
 #endif
 		}
 
