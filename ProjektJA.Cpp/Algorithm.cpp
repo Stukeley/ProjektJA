@@ -8,14 +8,21 @@
 
 void InitializeMasks()
 {
-	SumOfMasks = 1;
-
 	Masks = new int[9]
 	{
 		0, -1, 0,
 		-1, 5, -1,
 		0, -1, 0
 	};
+
+	int sum = 0;
+
+	for (int i = 0; i < 9; i++)
+	{
+		sum += Masks[i];
+	}
+
+	SumOfMasks = sum;
 }
 
 extern "C" __declspec(dllexport) byte* __stdcall ApplyFilterToImageFragmentCpp(byte* bitmapBytes, int bitmapBytesLength, int bitmapWidth, int startIndex, int endIndex)
@@ -96,6 +103,7 @@ byte CalculateNewPixelValue(byte* imageFragment)
 		}
 	}
 
+	// Upewniamy siê, ¿e wartoœæ piksela jest z zakresu <0; 255>.
 	if (newPixelWeightedValue < 0)
 	{
 		newPixelWeightedValue = 0;
@@ -105,5 +113,11 @@ byte CalculateNewPixelValue(byte* imageFragment)
 		newPixelWeightedValue = 255;
 	}
 
-	return (byte)(newPixelWeightedValue / (float)SumOfMasks);
+	// Je¿eli suma masek jest ró¿na od zera, dzielimy now¹ wartoœæ piksela by zapobiec zmianie jasnoœci obrazu.
+	if (SumOfMasks != 0)
+	{
+		newPixelWeightedValue = (byte)(newPixelWeightedValue / (float)SumOfMasks);
+	}
+
+	return newPixelWeightedValue;
 }
