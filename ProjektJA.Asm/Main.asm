@@ -8,8 +8,7 @@
 
 .DATA
 SumOfMasks QWORD ?							; suma masek z poni¿szej tablicy (zawsze sta³a, dla filtra HP1 równa 1)
-;Masks BYTE 0, -1, 0, -1, 5, -1, 0, -1, 0	; tablica masek 3x3
-Masks BYTE -1, 0, -1, 5, -1, 0, -1, 0
+Masks BYTE 0, -1, 0, -1, 5, -1, 0, -1, 0	; tablica masek 3x3
 mask_80h BYTE 16 dup (80h)					; Zmienna pomocnicza do obliczenia sumy
 
 .CODE
@@ -58,7 +57,7 @@ GetSumOfMasks endp
 
 ;-------------------------------------------------------------------------
 ; Funkcja obliczaj¹ca now¹ wartoœæ piksela na podstawie tablicy 3x3, zawieraj¹cej wartoœci R, G lub B dla fragmentu bitmapy.
-; w rejestrze RCX znajduje siê adres tablicy (3x3), dla której liczymy now¹ wartoœæ.
+; w rejestrze xmm4 znajduj¹ siê wartoœci pikseli R, G lub B na obszarze 3x3
 ; wartoœæ zwracana znajduje siê w rejestrze RAX po wywo³aniu funkcji.
 ;-------------------------------------------------------------------------
 CalculateNewPixelValue proc
@@ -68,7 +67,6 @@ CalculateNewPixelValue proc
 	; 2. Do rejestru xmm4 zapisujemy wartoœci tablicy przekazanej jako parametr, przekonwertowane na wartoœci 16-bitowe
 	; 3. Mno¿ymy poszczególne wartoœci dwóch wektorów
 	; 4. Sumujemy wymno¿one wartoœci do uzyskania pojedynczej wartoœci
-	; 5. Traktujemy ostatnie (9-te) dzia³anie osobno
 
 	; Instrukcja wektorowa - pmovsxbw, konwertuj¹ca liczby 8-bitowe na 16-bitowe i zapisuj¹ca je do wektora za pomoc¹ "sign-extend"
 	;						 pmovzxbw - j.w., ale konwersja za pomoc¹ "zero-extend"
@@ -78,9 +76,6 @@ CalculateNewPixelValue proc
 StartCalc:
 	movq xmm5, QWORD PTR [Masks]
 	pmovsxbw xmm3, xmm5
-
-	;movq xmm5, xmm4
-	;pmovzxbw xmm4, xmm5
 
 	pmaddwd xmm3, xmm4
 
