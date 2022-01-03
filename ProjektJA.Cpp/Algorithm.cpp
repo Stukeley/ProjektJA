@@ -113,11 +113,5 @@ byte CalculateNewPixelValue(byte* imageFragment)
 		newPixelWeightedValue = 255;
 	}
 
-	// Je¿eli suma masek jest ró¿na od zera, dzielimy now¹ wartoœæ piksela by zapobiec zmianie jasnoœci obrazu.
-	if (SumOfMasks != 0)
-	{
-		newPixelWeightedValue = (byte)(newPixelWeightedValue / (float)SumOfMasks);
-	}
-
 	return newPixelWeightedValue;
 }

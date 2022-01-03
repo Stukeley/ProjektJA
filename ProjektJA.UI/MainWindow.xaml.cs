@@ -24,7 +24,6 @@ namespace ProjektJA.UI
 		private int _threadCount;
 		private byte[] _bitmapBytes;
 		private byte[] _outputBitmapBytes;
-		private int _executionNumber;
 
 		public MainWindow()
 		{
@@ -33,7 +32,6 @@ namespace ProjektJA.UI
 			CsAlgorithmBox.IsChecked = true;
 			_asmAlgorithm = false;
 			_stopwatch = new Stopwatch();
-			_executionNumber = 1;
 		}
 
 		private void FileBrowserButton_Click(object sender, RoutedEventArgs e)
@@ -89,7 +87,6 @@ namespace ProjektJA.UI
 
 				FilterBitmapButton.IsEnabled = true;
 				SaveBitmapButton.IsEnabled = false;
-				_executionNumber = 1;
 			}
 
 		}
@@ -136,7 +133,7 @@ namespace ProjektJA.UI
 			}
 
 			_stopwatch.Stop();
-			string executionTime = "Execution time: " + _stopwatch.Elapsed.ToString(@"mm\:ss\.fff");
+			string executionTime = "Czas wykonania: " + _stopwatch.Elapsed.ToString(@"mm\:ss\.fff");
 			ExecutionTimeBlock.Text = executionTime;
 
 			// Rekonstrukcja nagłówka bitmapy.
@@ -165,7 +162,7 @@ namespace ProjektJA.UI
 			// Identyfikator obrazu
 			var textBlock = new TextBlock()
 			{
-				Text = $"{_executionNumber++}",
+				Text = $"{_threadCount}t: {(_asmAlgorithm ? "ASM" : "C++")}, {executionTime}",
 				Margin = new Thickness(0, 0, 0, 10),
 				HorizontalAlignment = HorizontalAlignment.Center,
 				FontWeight = FontWeights.Bold
@@ -259,6 +256,8 @@ namespace ProjektJA.UI
 		private void SaveBitmapButton_Click(object sender, RoutedEventArgs e)
 		{
 			File.WriteAllBytes("Output.bmp", _outputBitmapBytes);
+
+			MessageBox.Show("Obraz zapisany do ścieżki wyjściowej projektu!");
 		}
 
 		private void AsmAlgorithmBox_Unchecked(object sender, RoutedEventArgs e)

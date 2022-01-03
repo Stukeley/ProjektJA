@@ -14,9 +14,9 @@ namespace ProjektJA.UI
 	public class Algorithms
 	{
 		[DllImport(@"C:\Programowanie\ProjektJA\x64\Debug\ProjektJA.Asm.dll")]
-		public static extern IntPtr ApplyFilterToImageFragmentAsm(IntPtr bitmapBytes, int bitmapBytesLength, int bitmapWidth, int startIndex, int endIndex, IntPtr filteredFragment, IntPtr valuesR, IntPtr valuesG, IntPtr valuesB);
+		public static extern IntPtr ApplyFilterToImageFragmentAsm(IntPtr bitmapBytes, int bitmapBytesLength, int bitmapWidth, int startIndex, int endIndex, IntPtr filteredFragment);
 
-		[DllImport(@"C:\Programowanie\ProjektJA\x64\Debug\ProjektJA.Cpp.dll", CallingConvention = CallingConvention.StdCall)]
+		[DllImport(@"C:\Programowanie\ProjektJA\x64\Release\ProjektJA.Cpp.dll", CallingConvention = CallingConvention.StdCall)]
 		public static extern IntPtr ApplyFilterToImageFragmentCpp(IntPtr bitmapBytes, int bitmapBytesLength, int bitmapWidth, int startIndex, int endIndex);
 
 		private static volatile Dictionary<int, byte[]> _listOfResults = new Dictionary<int, byte[]>();
@@ -222,17 +222,11 @@ namespace ProjektJA.UI
 			{
 				fixed (byte* pointerToByteArray = &(bitmapBytes[0]))
 				fixed (byte* pointerToFilteredFragmentArray = &(filteredFragment[0]))
-				fixed (byte* pointerToR = &(valuesR[0]))
-				fixed (byte* pointerToG = &(valuesG[0]))
-				fixed (byte* pointerToB = &(valuesB[0]))
 				{
 					var bitmapBytesIntPtr = new IntPtr(pointerToByteArray);
 					var filteredFragmentIntPtr = new IntPtr(pointerToFilteredFragmentArray);
-					var rIntPtr = new IntPtr(pointerToR);
-					var gIntPtr = new IntPtr(pointerToG);
-					var bIntPtr = new IntPtr(pointerToB);
 
-					var result = ApplyFilterToImageFragmentAsm(bitmapBytesIntPtr, bitmapBytes.Length, bitmapWidth, startIndex, endIndex, filteredFragmentIntPtr, rIntPtr, gIntPtr, bIntPtr);
+					var result = ApplyFilterToImageFragmentAsm(bitmapBytesIntPtr, bitmapBytes.Length, bitmapWidth, startIndex, endIndex, filteredFragmentIntPtr);
 
 					byte* resultPointer = (byte*)result;
 

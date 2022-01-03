@@ -8,7 +8,8 @@
 
 .DATA
 SumOfMasks QWORD ?							; suma masek z poni¿szej tablicy (zawsze sta³a, dla filtra HP1 równa 1)
-Masks BYTE 0, -1, 0, -1, 5, -1, 0, -1, 0	; tablica masek 3x3
+;Masks BYTE 0, -1, 0, -1, 5, -1, 0, -1, 0	; tablica masek 3x3
+Masks BYTE -1, 0, -1, 5, -1, 0, -1, 0
 mask_80h BYTE 16 dup (80h)					; Zmienna pomocnicza do obliczenia sumy
 
 .CODE
@@ -78,8 +79,8 @@ StartCalc:
 	movq xmm5, QWORD PTR [Masks]
 	pmovsxbw xmm3, xmm5
 
-	movq xmm5, QWORD PTR [RCX]
-	pmovzxbw xmm4, xmm5
+	;movq xmm5, xmm4
+	;pmovzxbw xmm4, xmm5
 
 	pmaddwd xmm3, xmm4
 
@@ -90,12 +91,6 @@ StartCalc:
 	movd EAX, xmm3
 
 	movsxd RAX, EAX
-
-	; Ostatnia (9-ta) wartoœæ mno¿ona osobno
-	movsx RBX, BYTE PTR [Masks + 8]
-	movzx RDX, BYTE PTR [RCX + 8]
-	imul RBX, RDX
-	add RAX, RBX
 
 Koniec:
 	; Instrukcja wektorowa - movq, przenosz¹ca 64-bitow¹ liczbê ze znakiem z lub do rejestru XMM
@@ -113,22 +108,6 @@ Koniec:
 	minpd xmm14, xmm15
 
 	movq RAX, xmm14
-
-	; Dzielimy wynik (zmiennoprzecinkowo) przez sumê masek by zapobiec zmianie jasnoœci obrazu wyjœciowego (tylko gdy suma jest ró¿na od 0).
-	; Instrukcja wektorowa - divss, dziel¹ca wektor (reprezentuj¹cy liczbê zmiennoprzecinkow¹) przez drugi.
-	; Ponadto wykorzystano wektorow¹ instrukcje pxor, oraz instrukcje konwertuj¹ce cvtsi2ss i cvttss2si.
-	cmp SumOfMasks, 0
-	je KoniecReturn
-
-	pxor xmm3, xmm3
-	pxor xmm4, xmm4
-
-	cvtsi2ss xmm3, RAX
-	cvtsi2ss xmm4, SumOfMasks
-	divss xmm3, xmm4
-	cvtss2si RAX, xmm3
-
-	jmp KoniecReturn
 
 KoniecReturn:
 
@@ -149,16 +128,12 @@ ApplyFilterToImageFragmentAsm proc
 	xor R10, R10
 
 	; Przeniesiemy poszczególne parametry do zmiennych w pamiêci
-	; Instrukcja wektorowa - cvtsi2sd, zamieniaj¹ca liczbê ca³kowit¹ na wektor
-	cvtsi2sd xmm0, RDX
-	cvtsi2sd xmm1, R8
-	cvtsi2sd xmm2, R9
+	movq xmm0, RDX
+	movq xmm1, R8
+	movq xmm2, R9
 	
 									; [RSP + 40] - indeks koñcowy
 									; [RSP + 48] - wskaŸnik na bitmapê wyjœciow¹
-									; [RSP + 56] - wskaŸnik na pomocnicz¹ tablicê wartoœci R
-									; [RSP + 64] - wskaŸnik na pomocnicz¹ tablicê wartoœci G
-									; [RSP + 72] - wskaŸnik na pomocnicz¹ tablicê wartoœci B
 
 	mov R11, QWORD PTR [RSP + 40]	; R11 - koñcowy indeks (tymczasowo)
 
@@ -178,28 +153,27 @@ SetupGlownejPetli:
 	; Inicjalizujemy sumê masek - jeden raz na wywo³anie programu
 	call GetSumOfMasks
 
-	cvtsd2si R11, xmm2	; i = R11
+	movq R11, xmm2	; i = R11
 
 GlownaPetla:		; for (int i = startIndex; i <= endIndex; i += 3)
 
 	mov R12, R11	; centerPixelIndex = i; (R12) !<- to ewentualnie mo¿na wyeliminowaæ, bo i == centerPixelIndex
 
-	; Instrukcja wektorowa - cvtsd2si, zamieniaj¹ca wektor na liczbê ca³kowit¹
-	cvtsd2si R13, xmm1 ; R13 = bitmapWidth
+	movq R13, xmm1 ; R13 = bitmapWidth
 
 	cmp R12, R13	; if (centerPixelIndex < bitmapWidth)
 	jl KoniecGlownejPetli
 
 	mov RAX, R11	; if (i % bitmapWidth == 0) - dzielimy RAX przez RBX, reszta zapisana w RDX
 	xor RDX, RDX
-	cvtsd2si RBX, xmm1
+	movq RBX, xmm1
 	div RBX
 
 	cmp RDX, 0
 	je KoniecGlownejPetli
 
-	cvtsd2si RBX, xmm0 ; if (i >= bitmapBytesLength - bitmapWidth)
-	cvtsd2si RCX, xmm1
+	movq RBX, xmm0 ; if (i >= bitmapBytesLength - bitmapWidth)
+	movq RCX, xmm1
 	sub RBX, RCX
 	cmp R12, RBX
 	jge KoniecGlownejPetli
@@ -207,13 +181,17 @@ GlownaPetla:		; for (int i = startIndex; i <= endIndex; i += 3)
 	mov RAX, R11		; if ((i + 2 + 1) % bitmapWidth == 0) - dzielimy RAX przez RBX, reszta zapisana w RDX
 	add RAX, 3
 	xor RDX, RDX
-	cvtsd2si RBX, xmm1
+	movq RBX, xmm1
 	div RBX
 
 	cmp RDX, 0	
 	je KoniecGlownejPetli
 
 	xor R13, R13
+
+	pxor xmm10, xmm10	; xmm10 - tablica pomocnicza R
+	pxor xmm11, xmm11	; xmm11 - tablica pomocnicza G
+	pxor xmm12, xmm12	; xmm12 - tablica pomocnicza B
 
 GlownaPetlaY:		; for (int y = 0; y < 3; y++) (R13 = y)
 	xor R14, R14
@@ -230,7 +208,7 @@ GlownaPetlaX:		; for (int x = 0; x < 3; x++) (R14 = x)
 
 	mov RAX, R13	; bitmapWidth * (y - 1)
 	dec RAX
-	cvtsd2si RCX, xmm1
+	movq RCX, xmm1
 	imul RAX, RCX
 
 	add RBX, RAX
@@ -240,22 +218,27 @@ GlownaPetlaX:		; for (int x = 0; x < 3; x++) (R14 = x)
 	imul RCX, 3
 	add RCX, R14
 
-	mov R15B, BYTE PTR [R8 + RBX]	; R15B = bitmapBytes[index]
-	mov RAX, QWORD PTR [RSP + 56]
+	xor R15, R15
 
-	mov BYTE PTR [RAX + RCX], R15B ; valuesR[x + y * 3] = BL
+	mov R15B, BYTE PTR [R8 + RBX]	; R15B = bitmapBytes[index]
+
+	pslldq xmm10, 2	; Shift w lewo o 2 bajty
+	movd xmm4, R15D
+	addps xmm10, xmm4
 
 	inc RBX						; R15B = bitmapBytes[index + 1]
 	mov R15B, BYTE PTR [R8 + RBX]
-	mov RAX, QWORD PTR [RSP + 64]
 
-	mov BYTE PTR [RAX + RCX], R15B ; valuesG[x + y * 3] = BL
+	pslldq xmm11, 2
+	movd xmm4, R15D
+	addps xmm11, xmm4
 
 	inc RBX						; R15B = bitmapBytes[index + 2]
 	mov R15B, BYTE PTR [R8 + RBX]
-	mov RAX, QWORD PTR [RSP + 72]
 
-	mov BYTE PTR [RAX + RCX], R15B ; valuesB[x + y * 3] = BL
+	pslldq xmm12, 2
+	movd xmm4, R15D
+	addps xmm12, xmm4
 
 	inc R14
 	cmp R14, 3
@@ -265,36 +248,38 @@ GlownaPetlaX:		; for (int x = 0; x < 3; x++) (R14 = x)
 
 KoniecPetliXY:
 
-	mov RCX, QWORD PTR [RSP + 56]	; adres ValuesR do RCX - przekazywany do procedury CalculateNewPixelValue
+	; odwracamy kolejnoœæ w xmm10, xmm11, xmm12 (zapisywaliœmy odwrotnie ni¿ powinniœmy poniewa¿ korzystaliœmy z przesuniêcia bitowego w lewo)
+
+	movdqu xmm4, xmm10
 	call CalculateNewPixelValue
 
 	; filteredFragment[i - startIndex] = CalculateNewPixelValue(valuesR);
 
 	mov RDX, R11	; i - startIndex
-	cvtsd2si RCX, xmm2
+	movq RCX, xmm2
 	sub RDX, RCX
 
 	mov BYTE PTR [R9 + RDX], AL	; wykorzystujemy AL, czyli dolne 8 bitów rejestru RAX (w którym jest wartoœæ zwracana z CalculateNewPixelValue)
 
-	mov RCX, QWORD PTR [RSP + 64]	; adres ValuesG do RCX - przekazywany do procedury CalculateNewPixelValue
+	movdqu xmm4, xmm11
 	call CalculateNewPixelValue
 
 	; filteredFragment[i - startIndex + 1] = CalculateNewPixelValue(valuesG);
 
 	mov RDX, R11	; i - startIndex + 1
-	cvtsd2si RCX, xmm2
+	movq RCX, xmm2
 	sub RDX, RCX
 	inc RDX
 
 	mov BYTE PTR [R9 + RDX], AL	; wykorzystujemy AL, czyli dolne 8 bitów rejestru RAX (w którym jest wartoœæ zwracana z CalculateNewPixelValue)
 
-	mov RCX, QWORD PTR [RSP + 72]	; adres ValuesB do RCX - przekazywany do procedury CalculateNewPixelValue
+	movdqu xmm4, xmm12
 	call CalculateNewPixelValue
 
 	; filteredFragment[i - startIndex + 2] = CalculateNewPixelValue(valuesB);
 
 	mov RDX, R11	; i - startIndex + 2
-	cvtsd2si RCX, xmm2
+	movq RCX, xmm2
 	sub RDX, RCX
 	add RDX, 2
 
@@ -311,7 +296,6 @@ KoniecGlownejPetli:
 KoniecProgramu:
 	mov RAX, R9
 	ret
-
 
 ApplyFilterToImageFragmentAsm endp
 ;-------------------------------------------------------------------------
