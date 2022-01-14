@@ -13,7 +13,7 @@ namespace ProjektJA.UI
 {
 	public class Algorithms
 	{
-		[DllImport(@"C:\Programowanie\ProjektJA\x64\Debug\ProjektJA.Asm.dll")]
+		[DllImport(@"C:\Programowanie\ProjektJA\x64\Release\ProjektJA.Asm.dll")]
 		public static extern IntPtr ApplyFilterToImageFragmentAsm(IntPtr bitmapBytes, int bitmapBytesLength, int bitmapWidth, int startIndex, int endIndex, IntPtr filteredFragment);
 
 		[DllImport(@"C:\Programowanie\ProjektJA\x64\Release\ProjektJA.Cpp.dll", CallingConvention = CallingConvention.StdCall)]
@@ -214,9 +214,6 @@ namespace ProjektJA.UI
 		private static void CallApplyFilterToImageFragmentAsm(byte[] bitmapBytes, int bitmapWidth, int startIndex, int endIndex, byte[] filteredFragment, int threadId)
 		{
 			byte[] output = null;
-			byte[] valuesR = new byte[9];
-			byte[] valuesG = new byte[9];
-			byte[] valuesB = new byte[9];
 
 			unsafe
 			{
