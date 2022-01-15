@@ -178,55 +178,6 @@ namespace ProjektJA.UI
 			_outputBitmapBytes = outputBitmapComplete;
 
 			SaveBitmapButton.IsEnabled = true;
-
-			// Tylko w trybie DEBUG - zapisanie obrazu.
-#if DEBUG
-			File.WriteAllBytes("TestOutput.bmp", outputBitmapComplete);
-
-			var dobra = HighPassImageFilter.ApplyFilterToImageFragmentCs(bitmapWithoutHeader, bitmapWithoutHeader.Length, bitmapWidth, 0, bitmapWithoutHeader.Length - 1);
-
-			CompareTwoArrays(result, dobra);
-#endif
-		}
-
-		private static void CompareTwoArrays(byte[] first, byte[] second)
-		{
-			// second jest dobra (wzięta z C#)
-
-			bool[] compared = new bool[first.Length];
-
-			for (int i = 0; i < first.Length; i++)
-			{
-				if (first[i] == second[i])
-				{
-					compared[i] = true;
-				}
-				else
-				{
-					compared[i] = false;
-				}
-			}
-
-			int trueCount = compared.Count(x => x == true);
-			int falseCount = compared.Count(x => x == false);
-
-			// Export to file
-
-			using (var writer = new StreamWriter("TempOutput_Zla.txt"))
-			{
-				for (int i = 0; i < first.Length; i++)
-				{
-					writer.WriteLine(first[i]);
-				}
-			}
-
-			using (var writer = new StreamWriter("TempOutput_Dobra.txt"))
-			{
-				for (int i = 0; i < second.Length; i++)
-				{
-					writer.WriteLine(second[i]);
-				}
-			}
 		}
 
 		private static BitmapImage ConvertBitmapBytesToImageSource(byte[] bitmapBytes)

@@ -7,9 +7,7 @@
 ;INCLUDE C:\masm32\include\windows.inc
 
 .DATA
-SumOfMasks QWORD ?							; suma masek z poni¿szej tablicy (zawsze sta³a, dla filtra HP1 równa 1)
 Masks BYTE 0, -1, 0, -1, 5, -1, 0, -1, 0	; tablica masek 3x3
-mask_80h BYTE 16 dup (80h)					; Zmienna pomocnicza do obliczenia sumy
 
 .CODE
 
@@ -19,41 +17,6 @@ mov	eax, 1 	;TRUE
 ret
 
 DllEntry ENDP
-
-;-------------------------------------------------------------------------
-; Procedura obliczaj¹ca sumê masek, zawartych w tablicy Masks, i zapisuj¹ca j¹ do zmiennej SumOfMasks.
-; Korzysta z instrukcji wektorowych do przechowania tablicy Masks w rejestrze xmm i ich zsumowania.
-; Procedura nie oczekuje ani nie zwraca ¿adnych wartoœci.
-;-------------------------------------------------------------------------
-GetSumOfMasks proc
-
-push RAX
-push RDX
-
-; Instrukcja wektorowa - movq, przenosz¹ca dane z tablicy w pamiêci jako wektor do rejestru XMM
-movq xmm3, QWORD PTR [Masks]
-movsx EAX, BYTE PTR [Masks + 8]
-movdqu xmm5, xmmword ptr [mask_80h]
-pxor xmm3, xmm5
-
-pxor xmm4, xmm4
-; Instrukcja wektorowa - psadbw, sumuj¹ca ró¿nice elementów dwóch wektorów; poniewa¿ suma wykonywana jest dla elementów bez znaku, wówczas musimy przed i po zsumowaniu zmieniæ zakres sumy
-;						z liczby bez znaku na liczbê ze znakiem.
-;						w zwi¹zku z tym równolegle odejmujemy przesuniêcia (zawarte w xmm3), a nastêpnie korygujemy za pomoc¹ instrukcji sub
-
-psadbw xmm4, xmm3
-movd EDX, xmm4
-sub RAX, 8 * 80h
-add RAX, RDX
-
-mov SumOfMasks, RAX
-
-pop RDX
-pop RAX
-
-ret
-
-GetSumOfMasks endp
 
 ;-------------------------------------------------------------------------
 ; Funkcja obliczaj¹ca now¹ wartoœæ piksela na podstawie tablicy 3x3, zawieraj¹cej wartoœci R, G lub B dla fragmentu bitmapy.
@@ -145,8 +108,6 @@ ApplyFilterToImageFragmentAsm proc
 	jmp SetupGlownejPetli
 
 SetupGlownejPetli:
-	; Inicjalizujemy sumê masek - jeden raz na wywo³anie programu
-	call GetSumOfMasks
 
 	movq R11, xmm2	; i = R11
 
